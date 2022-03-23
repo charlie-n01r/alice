@@ -27,7 +27,7 @@ def p_vrs(p):
     '''
     p[0] = p[1], p[2], p[3], p[4], p[5], p[6]
 
-def p_vrss(p):
+def p_rvrs(p):
     '''
     rvrs : vrs
          | empty
@@ -219,9 +219,9 @@ def p_empty(p):
 
 # Catch errors
 
-def p_error(token):
-    if token is not None:
-        print("Line %s, illegal token: %s" % (token.lineno, token.value))
+def p_error(t):
+    if t is not None:
+        print("Line %s, illegal token: %s" % (t.lineno, t.value))
     else:
         print('Unexpected end of input')
     quit()
@@ -233,7 +233,6 @@ parser = yacc.yacc()
 while True:
     try:
         file_name = input('>Insert file name: ')
-        print(file_name)
         test_file = open(file_name)
         source_code = test_file.read()
         test_file.close()
