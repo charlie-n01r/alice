@@ -253,6 +253,7 @@ Estas funciones reciben, aparte del _string_ ya mencionado, una lista de _entero
   - Histograma (`hist`)
   - Pie (`pie`)
   - Boxplot (`boxplot`)
+
 #### Funciones de parejas X, Y:
 Estas funciones reciben 2 pares de listas de _enteros_ o _floats_ que corresponderán a la parejas de puntos (x, y). La primera lista son los puntos X, mientras que la segunda lista son los puntos Y. Al igual que las funciones anteriores, estas pueden ser variables o listas constantes. **¡Cabe mencionar que ambas listas deben ser del mismo tamaño para poder generar una gráfica correcta!**
   - Línea 2D (`plot`)
