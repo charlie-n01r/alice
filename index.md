@@ -1,4 +1,3 @@
-# Alice: un lenguaje de progrmación orientado a data science
 A continuación se describen las características que tendrá el lenguaje Alice, el cual está orientado a programación estadística y data science, con el enfoque a una sintaxis intuitiva desde un punto de vista matemático.
 
 Debido a que el lenguaje esta pensado como un lenguaje de scripting parecido a Python, la estructura de un archivo hecho en Alice no es estrictamente rígida. Es decir, cualquier línea de Alice puede ser una asignación, el inicio de una función, la generación de una gráfica, etc. Sin embargo, se le sugiere a los programadores que lo utilicen que sigan las estructuras convencionales de un archivo de código.
