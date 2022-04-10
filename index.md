@@ -275,4 +275,4 @@ _El resultado de las anteriores operaciones generará los archivos pertinentes d
 
 ## Diagramas de sintaxis:
 
-![Alice Language](https://user-images.githubusercontent.com/67932262/161680539-a05ea851-61f2-44c2-8034-7b75d735c965.png)
+![Alice Language](https://user-images.githubusercontent.com/67932262/162602662-383b89ac-f38e-4e32-95bd-badd63f861a0.png)
