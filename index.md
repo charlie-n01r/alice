@@ -1,6 +1,6 @@
 A continuación se describen las características que tendrá el lenguaje Alice, el cual está orientado a programación estadística y data science, con el enfoque a una sintaxis intuitiva desde un punto de vista matemático.
 
-Debido a que el lenguaje esta pensado como un lenguaje de scripting parecido a Python, la estructura de un archivo hecho en Alice no es estrictamente rígida. Es decir, cualquier línea de Alice puede ser una asignación, el inicio de una función, la generación de una gráfica, etc. Sin embargo, se le sugiere a los programadores que lo utilicen que sigan las estructuras convencionales de un archivo de código.
+Debido a que el lenguaje está pensado como un lenguaje de scripting parecido a Python, la estructura de un archivo hecho en Alice no es estrictamente rígida. Es decir, cualquier línea de Alice puede ser una asignación, el inicio de una función, la generación de una gráfica, etc. Sin embargo, se le sugiere a los programadores que lo utilicen que sigan las estructuras convencionales de un archivo de código.
 
 A continuación se explicará la sintaxis de estatutos en Alice, así como los tipos de datos que soporta y funciones internas que maneja el lenguaje.
 
@@ -8,7 +8,7 @@ A continuación se explicará la sintaxis de estatutos en Alice, así como los t
 ### Operadores
 El lenguaje Alice cuenta con la siguiente jeraquía de operadores:
 
-| Presedencia | Operador                     | Descripción               | Asociatividad |
+| Precedencia | Operador                     | Descripción               | Asociatividad |
 |:------------|:-----------------------------|:--------------------------|:--------------|
 | 1           | `x^y`                        | Exponenciación            | Izq a Der 🡲  |
 | 1           | `x++`, `x--`                 | Incremento y decremento   | Izq a Der 🡲  |
