@@ -1,7 +1,0 @@
-program prueba3 :
-	var
-		sample1:int;
-		sample2, sample3 : float; {
-	sample1=100;
-	print(sample2);
-}

@@ -1,60 +1,86 @@
 import ply.lex as lex
 
 reserved_words = {
-    'program' : 'PROGRAM',
-    'var'     : 'VAR',
-    'int'     : 'INT',
-    'float'   : 'FLOAT',
-    'if'      : 'IF',
-    'else'    : 'ELSE',
-    'print'   : 'PRINT'
+    'begin'     : 'BEGIN',
+    'let'       : 'LET',
+    'input'     : 'INPUT',
+    'print'     : 'PRINT',
+    'if'        : 'IF',
+    'then'      : 'THEN',
+    'else'      : 'ELSE',
+    'do'        : 'DO',
+    'while'     : 'WHILE',
+    'for'       : 'FOR',
+    'module'    : 'MODULE',
+    'return'    : 'RETURN',
+    'endprog'   : 'ENDPROG',
+    'end'       : 'END',
+    'and'       : 'AND',
+    'or'        : 'OR',
+    'int'       : 'INT',
+    'float'     : 'FLOAT',
+    'string'    : 'STRING',
+    'void'      : 'VOID',
+    'size'      : 'SIZE',
+    'mean'      : 'MEAN',
+    'median'    : 'MEDIAN',
+    'mode'      : 'MODE',
+    'variance'  : 'VARIANCE',
+    'std'       : 'STD',
+    'range'     : 'RANGE'
 }
 
 tokens = [
     'ID',
-    'COLON',
-    'SEMICOLON',
-    'COMA',
-    'L_PAREN',
-    'R_PAREN',
-    'L_CURL',
-    'R_CURL',
+    'CTE_I',
+    'CTE_F',
+    'CTE_STRING',
+    'EXPONENT',
+    'ADD',
+    'DECREASE',
     'PLUS',
     'MINUS',
     'MULTIPLY',
     'DIVIDE',
-    'ASIGN',
     'LT',
+    'LE',
     'GT',
-    'DIFF',
-    'CTE_STRING',
-    'CTE_I',
-    'CTE_F'
+    'GE',
+    'EQ',
+    'NE',
+    'ASSIGN',
+    'COLON',
+    'SEMICOLON',
+    'TYPE_ASSIGN',
+    'COMA',
+    'LPAREN',
+    'RPAREN',
+    'L_SBRKT',
+    'R_SBRKT'
 ] + list(reserved_words.values())
 
-
-t_PROGRAM = r'program'
-t_COLON = r'\:'
-t_VAR = r'var'
-t_SEMICOLON = r'\;'
-t_COMA = r'\,'
-t_INT = r'int'
-t_FLOAT = r'float'
-t_IF = r'if'
-t_ELSE = r'else'
-t_L_PAREN = r'\('
-t_R_PAREN = r'\)'
-t_L_CURL = r'\{'
-t_R_CURL = r'\}'
-t_PRINT = r'print'
-t_PLUS = r'\+'
-t_MINUS = r'-'
-t_MULTIPLY = r'\*'
-t_DIVIDE = r'/'
-t_ASIGN = r'\='
-t_LT = r'\<'
-t_GT = r'>'
-t_DIFF = r'\<>'
+t_EXPONENT      = r'\^'
+t_ADD           = r'\+\+'
+t_DECREASE      = r'--'
+t_PLUS          = r'\+'
+t_MINUS         = r'-'
+t_MULTIPLY      = r'\*'
+t_DIVIDE        = r'/'
+t_ASSIGN         = r'\<-'
+t_LE            = r'\<='
+t_LT            = r'\<'
+t_GE            = r'>='
+t_GT            = r'>'
+t_EQ            = r'\=\='
+t_NE            = r'¬\='
+t_TYPE_ASSIGN   = r'\:\:'
+t_COLON         = r'\:'
+t_SEMICOLON     = r'\;'
+t_COMA          = r'\,'
+t_LPAREN        = r'\('
+t_RPAREN        = r'\)'
+t_L_SBRKT       = r'\['
+t_R_SBRKT       = r'\]'
 
 t_ignore = ' \t\n\r\f'
 
@@ -68,7 +94,7 @@ def t_ID(t):
     return t
 
 def t_CTE_F(t):
-    r'\d+\.(\d*)?(E(\+|-)?\d+)?'
+    r'\d+\.(\d*)?(e(\+|-)?\d+)?'
     t.value = float(t.value)
     return t
 
@@ -78,7 +104,7 @@ def t_CTE_I(t):
     return t
 
 def t_CTE_STRING(t):
-    r'\"(.|\s)*\"'
+    r'"(.|\s)*"'
     t.type = 'CTE_STRING'
     return t
 
