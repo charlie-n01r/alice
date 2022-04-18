@@ -216,4 +216,4 @@ print(range(data));
 
 ## Diagramas de sintaxis:
 
-![Alice Language](https://user-images.githubusercontent.com/67932262/163276602-8e044500-31ff-4fce-8b35-4d2fca8a053d.png)
+![Alice Language](https://user-images.githubusercontent.com/67932262/163838463-5f96f61e-75fe-4325-8a0f-53e065ca5333.png)
