@@ -4,10 +4,30 @@ from alice_lex import tokens
 
 def p_program(p):
     '''
-    program : BEGIN ID COLON initstmt ENDPROG
+    program : BEGIN ID COLON global ENDPROG
     '''
     p[0] = p[1], p[2], p[3], p[4], p[5]
     print(p[0])
+
+def p_global(p):
+    '''
+    global : main
+           | gdeclr
+    '''
+    p[0] = p[1]
+
+def p_gdeclr(p):
+    '''
+    gdeclr : declaration global
+           | module global
+    '''
+    p[0] = p[1], p[2]
+
+def p_main(p):
+    '''
+    main : MAIN COLON initstmt END
+    '''
+    p[0] = p[1], p[2], p[3], p[4]
 
 def p_initstmt(p):
     '''
@@ -42,7 +62,6 @@ def p_simple(p):
            | assignment
            | expression
            | return
-           | print
     '''
     p[0] = p[1]
 
@@ -276,6 +295,7 @@ def p_auxparams(p):
 def p_systemdef(p):
     '''
     systemdef : INPUT LPAREN expr RPAREN
+              | PRINT LPAREN expr auxparams RPAREN
               | SIZE LPAREN expr RPAREN
               | MEAN LPAREN expr RPAREN
               | MEDIAN LPAREN expr RPAREN
@@ -284,7 +304,11 @@ def p_systemdef(p):
               | STD LPAREN expr RPAREN
               | RANGE LPAREN expr RPAREN
     '''
-    p[0] = p[1], p[2], p[3], p[4]
+    if len(p) < 6:
+        p[0] = p[1], p[2], p[3], p[4]
+    else:
+        p[0] = p[1], p[2], p[3], p[4], p[5]
+
 
 def p_return(p):
     '''
@@ -292,16 +316,9 @@ def p_return(p):
     '''
     p[0] = p[1], p[2]
 
-def p_print(p):
-    '''
-    print : PRINT LPAREN expr auxparams RPAREN SEMICOLON
-    '''
-    p[0] = p[1], p[2], p[3], p[4], p[5], p[6]
-
 def p_complex(p):
     '''
-    complex : module
-            | conditional
+    complex : conditional
             | iteration
     '''
     p[0] = p[1]
@@ -358,13 +375,13 @@ def p_else(p):
 def p_iteration(p):
     '''
     iteration : WHILE expr COLON initstmt END
-              | DO WHILE expr COLON initstmt END
+              | DO COLON initstmt COLON WHILE expr END
               | FOR LPAREN assignment expression expression RPAREN COLON initstmt END
     '''
     if len(p) == 6:
         p[0] = p[1], p[2], p[3], p[4], p[5]
-    elif len(p) == 7:
-        p[0] = p[1], p[2], p[3], p[4], p[5], p[6]
+    elif len(p) == 8:
+        p[0] = p[1], p[2], p[3], p[4], p[5], p[6], p[7]
     else:
         p[0] = p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9]
 
@@ -385,19 +402,3 @@ def p_error(t):
     quit()
 
 parser = yacc.yacc()
-
-## Read input from user for testing
-
-while True:
-    try:
-        file_name = input('>Insert file name: ')
-        test_file = open(file_name)
-        source_code = test_file.read()
-        test_file.close()
-    except (KeyboardInterrupt, EOFError):
-        quit('')
-    except FileNotFoundError:
-        print('Error! Wrong file name!')
-        continue
-    parser.parse(source_code)
-    print(f"Successfully parsed '{file_name}'!!")

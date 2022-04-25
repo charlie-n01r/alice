@@ -2,6 +2,7 @@ import ply.lex as lex
 
 reserved_words = {
     'begin'     : 'BEGIN',
+    'main'      : 'MAIN',
     'let'       : 'LET',
     'input'     : 'INPUT',
     'print'     : 'PRINT',
