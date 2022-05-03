@@ -105,7 +105,7 @@ def t_CTE_I(t):
     return t
 
 def t_CTE_STRING(t):
-    r'"(.|\s)*"'
+    r'"([^\\"\n]+|\\.)*"'
     t.type = 'CTE_STRING'
     return t
 

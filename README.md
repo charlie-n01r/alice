@@ -19,6 +19,24 @@ Se creó el archivo `structs.py`, el cual contiene las siguientes estructuras de
 
 Se creó el archivo `compile.py`, el cual solamente contiene el código utilizado para pruebas que se contenía dentro de `alice_yacc.py`. Esto a manera de modularizar más los archivos y dejar la lógica de la gramática separada de procesos ajenos.
 
-## _Bugs_ conocidos:
+### _Bugs_ conocidos:
   1. A pesar de que la gramática no marca ningún _warning_ u error, el parseo de una gramática que contenga estatutos compuestos (if-then-else, iteraciones) toma demasiado tiempo en parsear correctamente.
   2. Ocurren problemas similares con estatutos que son llamadas de función, ya sean funciones reservadas como _print_ o funciones del tipo `id(params...)`.
+
+## Avance 3:
+Se reestructuró la gramática para arreglar los bugs encontrados en el 2do avance. Aparentemente no hay ningún nuevo bug en la gramática.
+
+Se agregó un archivo llamado `sem_cube.py`, el cuál contiene el cubo semántico del lenguaje. Se agregó también el código para la generación de cuádruplos una vez que se pase el filtro del cubo semántico.
+
+Dentro del archivo `alice_yacc.py` se empezaron a generar algunas reglas vacías que funcionan como puntos neurálgicos para las expresiones con **or**, así como los valores estáticos y las variables simples. En el siguiente avance se buscará completar éste código y generar los respectivos códigos para el resto de las reglas de las expresiones y la de asignación, así como el avance pertinente de la semana siguiente.
+
+## Avance 3.5:
+Se terminó de agregar los puntos neurálgicos de todos los estatutos lineales y expresiones. Se implementaron mensajes de error semánticos al momento de querer realizar operaciones con parejas inválidas de operandos.
+
+Se modificó `structs.py` para agegar la lista de cúadruplos, se simplificó la creación de objetos tipo cuádruplo, se removió el atributo de _value_ para los renglones de la tabla de variables, y se creó un método de exportación de cuádruplos a formato _json_ para futuro uso en la máquina virtual.
+
+Se modificó `compile.py` para facilitar su uso al momento de parsear archivos.
+Se agregó una función a manera de _log_ para exportar información pertinente a un archivo, y así evitar llenar la terminal de mucha información.
+
+### _Bugs_ conocidos:
+  1. Al finalizar el parseo y generación de cuádruplos de una expresión, se queda en el stack de tipos y de operandos la última variable temporal creada, así como su respectivo tipo. Esto no ha afectado el parseo de ningún estatuto consiguiente, pero a la larga provoca que crezcan ambas pilas, vacíandose solamente al momento de finalizar la ejecución.
