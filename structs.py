@@ -75,7 +75,7 @@ class stacks:
         self.Operators = []
         self.Symbols = []
         self.Types = []
-        self.Gotos = []
+        self.Jumps = []
 
 class memory:
     def __init__(self):
@@ -89,8 +89,7 @@ class memory:
 
         self.tmpi = [10000, 0]
         self.tmpf = [15000, 0]
-        self.tmps = [20000, 0]
-        self.tmpb = [23000, 0]
+        self.tmpb = [20000, 0]
 
         self.ctei = [25000, 0]
         self.ctef = [27000, 0]
@@ -107,7 +106,6 @@ class memory:
 
         self.tmpi[1] = 0
         self.tmpf[1] = 0
-        self.tmps[1] = 0
         self.tmpb[1] = 0
 
         self.ctei[1] = 0
