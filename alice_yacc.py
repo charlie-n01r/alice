@@ -10,7 +10,7 @@ tmpvar_n = -1
 quad_count = -1
 
 S = stacks()
-funDir = fun_dir()
+funDir = mdl_dir()
 constants = cte_table()
 variables = var_table()
 quadruples = quadruple_list()
@@ -28,7 +28,7 @@ def find(ID, list_name):
             if var.ID != ID:
                 continue
             else:
-                if env == 'local' and (var.v_address >= 5000 and var.v_address < 10000):
+                if env != 'global' and (var.v_address >= 5000 and var.v_address < 10000):
                     return var
                 elif env == 'global' and (var.v_address >= 0 and var.v_address < 5000):
                     return var
@@ -60,20 +60,75 @@ def quad_gen(quad):
     quadruples.append(new_quad)
     quad_count += 1
 
-def constant_handler(p, cte):
-    S.Symbols.append(p[-1])
-    S.Types.append(cte)
+def quad_address(temp=False):
+    if not temp:
+        temp = S.Symbols.pop()
+    token = find(temp, 'cte')
+    if not token:
+        token = find(temp, 'var')
+    return token.v_address
+
+def temporary_handler(type, append=True, name=False):
+    if type == 0:
+        address = memory.tmpi[0] + memory.tmpi[1]
+        if address >= memory.tmpf[0]:
+            print(f'Error! Too many temporal integer variables!')
+            quit()
+        memory.tmpi[1] += 1
+        typetxt = 'int'
+    elif type == 1:
+        address = memory.tmpf[0] + memory.tmpf[1]
+        if address >= memory.tmpb[0]:
+            print(f'Error! Too many temporal float variables!')
+            quit()
+        memory.tmpf[1] += 1
+        typetxt = 'float'
+    else:
+        address = memory.tmpb[0] + memory.tmpb[1]
+        if address >= memory.ctei[0]:
+            print(f'Error! Too many temporal boolean variables!')
+            quit()
+        memory.tmpb[1] += 1
+        typetxt = 'bool'
+
+    if not name:
+        global tmpvar_n
+        tmpvar_n += 1
+        tn = 't' + str(tmpvar_n)
+    else:
+        tn = name
+    if append:
+        S.Types.append((type, typetxt))
+        S.Symbols.append(tn)
+
+    new_var = var_object(tn, (type, typetxt), address, 1)
+    variables.append(new_var)
+    return address
+
+def constant_handler(p, cte, append=True):
+    if append:
+        S.Symbols.append(p[-1])
+        S.Types.append(cte)
     if find(p[-1], 'cte') != False:
-        return
+        return find(p[-1], 'cte')
     else:
         if cte[0] == 0:
             address = memory.ctei[0] + memory.ctei[1]
+            if address >= memory.ctef[0]:
+                print(f'Error! Too many integer literals!')
+                quit()
             memory.ctei[1] += 1
         elif cte[0] == 1:
             address = memory.ctef[0] + memory.ctef[1]
+            if address >= memory.ctes[0]:
+                print(f'Error! Too many float literals!')
+                quit()
             memory.ctef[1] += 1
         else:
             address = memory.ctes[0] + memory.ctes[1]
+            if address >= 31000:
+                print(f'Error! Too many string literals!')
+                quit()
             memory.ctes[1] += 1
 
         new_cte = cte_object(p[-1], address)
@@ -87,8 +142,8 @@ def expression_handler(p, operator):
         size = length
 
     if size > 0 and S.Operators[length - 1] == operator:
-        temp_der, type_der = (S.Symbols.pop(), S.Types.pop())
-        temp_izq, type_izq = (S.Symbols.pop(), S.Types.pop())
+        type_der = S.Types.pop()
+        type_izq = S.Types.pop()
         operator = S.Operators.pop()
 
         res = get_result((operator, type_izq[0], type_der[0]))
@@ -101,19 +156,10 @@ def expression_handler(p, operator):
                 print(f'Semantic error! Cannot perform arithmetic operations between {type_izq[1]} and {type_der[1]}!')
             quit()
 
-        global tmpvar_n
-        tmpvar_n += 1
-        S.Symbols.append('t' + str(tmpvar_n))
-        if res == 0:
-            restxt = 'int'
-        elif res == 1:
-            restxt = 'float'
-        elif res == 2:
-            restxt = 'string'
-        else:
-            restxt = 'bool'
-        S.Types.append((res, restxt))
-        quad_gen((operator, temp_izq, temp_der, S.Symbols[len(S.Symbols) - 1]))
+        der_address = quad_address()
+        izq_address = quad_address()
+        tn = temporary_handler(res)
+        quad_gen((operator, izq_address, der_address, tn))
 
 def unary_handler(p, operator):
     length = len(S.Operators)
@@ -123,7 +169,7 @@ def unary_handler(p, operator):
         size = length
 
     if size > 0 and S.Operators[length - 1] == operator:
-        temp_der, type_der = (S.Symbols.pop(), S.Types.pop())
+        type_der = S.Types.pop()
         operator = S.Operators.pop()
 
         if operator == '-':
@@ -138,20 +184,9 @@ def unary_handler(p, operator):
                 print(f'Semantic error! Cannot perform arithmetic increment or decrease on {type_der[1]}!')
                 quit()
 
-        global tmpvar_n
-        tmpvar_n += 1
-        S.Symbols.append('t' + str(tmpvar_n))
-        if res == 0:
-            restxt = 'int'
-        elif res == 1:
-            restxt = 'float'
-        elif res == 2:
-            restxt = 'string'
-        else:
-            restxt = 'bool'
-        S.Types.append((res, restxt))
-        temp_izq = 0 if operator == '-' else None
-        quad_gen((operator, temp_izq, temp_der, S.Symbols[len(S.Symbols) - 1]))
+        der_address = quad_address()
+        tn = temporary_handler(res)
+        quad_gen((operator, None, der_address, tn))
 
 def get_IDs(IDList):
      for item in IDList:
@@ -161,16 +196,17 @@ def get_IDs(IDList):
          else:
              yield item
 
-def export():
+def end_yacc():
     with open('log.txt', 'w') as file:
-        file.write(f'Final Status:\nOperands: {S.Symbols}\nTypes: {S.Types}\nLargos: {(len(S.Symbols), len(S.Types))}\nOperators: {S.Operators}\nVariables: {variables.var_list}\nLiterals: {constants.cte_list}\nQuad Count:{quad_count + 1}')
-    quadruples.export()
+        file.write(f'Final Status:\nOperands: {S.Symbols}\nTypes: {S.Types}\nModules: {funDir.modules}\nOperators: {S.Operators}\nTemp. Variables: {[memory.tmpi[1], memory.tmpf[1], memory.tmpb[1]]}\nQuad Count: {quad_count + 1}\nVar. Table: {variables.var_list}')
+    export(quadruples, constants)
+
 #---------------------------Program Structure-----------------------------------
 def p_program(p):
     '''
-    program : BEGIN ID COLON global ENDPROG
+    program : BEGIN beginprog ID lclenv_setup COLON global ENDPROG
     '''
-    export()
+    end_yacc()
 
 def p_global(p):
     '''
@@ -187,17 +223,6 @@ def p_main(p):
 def p_stmtblock(p):
     '''
     stmtblock : COLON initstmt END
-    '''
-
-def p_typed_block(p):
-    '''
-    typed_block : COLON tblck END
-    '''
-
-def p_tblck(p):
-    '''
-    tblck : tblck return
-          | initstmt
     '''
 
 def p_initstmt(p):
@@ -221,6 +246,7 @@ def p_stmt(p):
          | iteration
          | declaration
          | expression popexpr
+         | return
     '''
 
 #--------------------------Complex Statements-----------------------------------
@@ -255,22 +281,15 @@ def p_for(p):
 #-------------------------------Module------------------------------------------
 def p_module(p):
     '''
-    module : void_module
-           | typed_module
+    module : MODULE ID TYPE_ASSIGN mdl_type lclenv_setup LPAREN params neuralgic_params RPAREN stmtblock lclenv_end
+    '''
+
+def p_mdl_type(p):
+    '''
+    mdl_type : VOID
+             | type
     '''
     p[0] = p[1]
-
-def p_typed_module(p):
-    '''
-    typed_module : MODULE ID TYPE_ASSIGN type LPAREN params RPAREN typed_block
-    '''
-    p[0] = p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]
-
-def p_void_module(p):
-    '''
-    void_module : MODULE ID TYPE_ASSIGN VOID LPAREN params RPAREN stmtblock
-    '''
-    p[0] = p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]
 
 def p_params(p):
     '''
@@ -278,7 +297,10 @@ def p_params(p):
            | empty
     '''
     if len(p) > 2:
-        p[0] = p[1], p[2], p[3], p[4]
+        if p[4] == None:
+            p[0] = p[1], p[3]
+        else:
+            p[0] = p[1], p[3], p[4]
     else:
         p[0] = p[1]
 
@@ -288,7 +310,7 @@ def p_rparams(p):
             | empty
     '''
     if len(p) > 2:
-        p[0] = p[1], p[2], p[3], p[4], p[5]
+        p[0] = p[1], p[3], p[5]
     else:
         p[0] = p[1]
 
@@ -521,7 +543,9 @@ def p_return(p):
     '''
     return : RETURN expression
     '''
-    p[0] = p[1], p[2]
+    if env not in ['int', 'float', 'string']:
+        print(f"Error! Cannot return in '{env}' context!")
+        quit()
 
 def p_type(p):
     '''
@@ -536,8 +560,15 @@ def p_lclenv_setup(p):
     '''
     lclenv_setup :
     '''
-    global env
-    env = 'local'
+    if p[-3] == 'begin':
+        program = mdl_object(p[-1], 'void', 1, variables, None)
+        funDir.append(program)
+    else:
+        global env
+        env = p[-1]
+        if env != 'main':
+            program = mdl_object(p[-3], env, None, None, None)
+            funDir.append(program)
 
 def p_lclenv_end(p):
     '''
@@ -545,6 +576,12 @@ def p_lclenv_end(p):
     '''
     global env
     env = 'global'
+
+def p_beginprog(p):
+    '''
+    beginprog :
+    '''
+    quad_gen(('Goto', None, None, 'Main'))
 
 def p_popexpr(p):
     '''
@@ -562,15 +599,16 @@ def p_neuralgic_assign(p):
         print(f"Error! Variable '{p[-3]}' doesn't exist!")
         quit()
     else:
-        temp_izq, type_izq = (var.ID, var.type)
-        temp_der, type_der = (S.Symbols.pop(), S.Types.pop())
+        type_izq = var.type
+        type_der = S.Types.pop()
 
         res = get_result((p[-2], type_izq[0], type_der[0]))
         if res is False:
             print(f'Semantic error! Type mismatch! Got {type_izq[1]} and {type_der[1]}!')
             quit()
 
-        quad_gen((p[-2], None, temp_der, var.ID))
+        der_address = quad_address()
+        quad_gen((p[-2], None, der_address, var.v_address))
 
 def p_neuralgic_dec(p):
     '''
@@ -676,6 +714,24 @@ def p_neuralgic_var(p):
     S.Symbols.append(p[-1])
     S.Types.append(var.type)
 
+def p_neuralgic_params(p):
+    '''
+    neuralgic_params :
+    '''
+    if p[-1] == None:
+        print('No parameters')
+    else:
+        params = []
+        IDList = [ID for ID in list(get_IDs(p[-1])) if ID != None]
+        for i in range(1, len(IDList), 2):
+            if IDList[i] == 'int':
+                params.append(0)
+            elif IDList[i] == 'float':
+                params.append(1)
+            else:
+                params.append(2)
+        funDir.modules[-1].prototyping = params
+
 def p_neuralgic_paren(p):
     '''
     neuralgic_paren :
@@ -717,12 +773,9 @@ def p_neuralgic_print(p):
                     print(f"Error! Variable '{IDList[i]}' doesn't exist!")
                     quit()
 
-            msg = S.Symbols.pop()
+            msg = quad_address()
             S.Types.pop()
-            if i == 0:
-                new_quad = quadruple('Print', None, None, str(msg) + r'\n')
-            else:
-                new_quad = quadruple('Print', None, None, str(msg) + ' ')
+            new_quad = quadruple('Print', None, None, msg)
             temp_quads.append(new_quad)
 
         temp_quads.quadruples = list(reversed(temp_quads.quadruples))
@@ -741,7 +794,7 @@ def p_neuralgic_input(p):
             print(f"Error! Variable '{p[-4]}' doesn't exist!")
             quit()
 
-    msg = S.Symbols.pop()
+    msg = quad_address()
     mtype = S.Types.pop()
     if mtype[0] != 2:
         print(f"Error while performing input! '{p[-4]}' is not a string!")
@@ -752,7 +805,7 @@ def p_neuralgic_input(p):
         quit()
 
     quad_gen(('Print', None, None, msg))
-    quad_gen(('Input', None, None, storage.ID))
+    quad_gen(('Input', None, None, storage.v_address))
 
 def p_neuralgic_if(p):
     '''
@@ -762,8 +815,8 @@ def p_neuralgic_if(p):
     if expr_type[0] != 3:
         print(f'Error! Cannot evaluate the truth value of {expr_type[1]} expressions!')
         quit()
-    res = S.Symbols.pop()
 
+    res = quad_address()
     quad_gen(('GotoF', res, None, None))
     S.Jumps.append(quad_count)
 
@@ -779,10 +832,8 @@ def p_neuralgic_else(p):
     neuralgic_else :
     '''
     quad_gen(('Goto', None, None, None))
-
     false = S.Jumps.pop()
     S.Jumps.append(quad_count)
-
     quadruples.quadruples[false].storage = quad_count + 1
 
 def p_neuralgic_while(p):
@@ -799,8 +850,7 @@ def p_while_expr(p):
     if expr_type[0] != 3:
         print(f'Error! Cannot evaluate the truth value of {expr_type[1]} expressions!')
         quit()
-    res = S.Symbols.pop()
-
+    res = quad_address()
     quad_gen(('GotoF', res, None, None))
     S.Jumps.append(quad_count)
 
@@ -828,7 +878,7 @@ def p_dw_end(p):
     if expr_type[0] != 3:
         print(f'Error! Cannot evaluate the truth value of {expr_type[1]} expressions!')
         quit()
-    res = S.Symbols.pop()
+    res = quad_address()
     goback = S.Jumps.pop()
     quad_gen(('GotoT', res, None, goback))
 
@@ -855,10 +905,8 @@ def p_for_expr(p):
     if expr_type[0] > 0:
         print(f"Semantic error! Type mismatch! Expected int, got {expr_type[1]}!")
         quit()
-    expr = S.Symbols.pop()
-
-    global control
-    control = S.Symbols[len(S.Symbols) - 1]
+    expr = quad_address()
+    control = quad_address(S.Symbols[len(S.Symbols) - 1])
     control_type = S.Types[len(S.Types) - 1]
 
     res = get_result((p[-2], control_type[0], expr_type[0]))
@@ -876,18 +924,15 @@ def p_neuralgic_for(p):
     if expr_type[0] > 0:
         print(f"Semantic error! Type mismatch! Expected int, got {expr_type[1]}!")
         quit()
-    expr = S.Symbols.pop()
-    control = S.Symbols[len(S.Symbols) - 1]
+    expr = quad_address()
+    control = quad_address(S.Symbols[len(S.Symbols) - 1])
+    tn = temporary_handler(3, False)
+    vcontrol = temporary_handler(0, False, 'vcontrol')
+    vfinal = temporary_handler(0, False, 'vfinal')
+    quad_gen(('<-', control, None, vcontrol))
+    quad_gen(('<-', expr, None, vfinal))
+    quad_gen(('<', vcontrol, vfinal, tn))
 
-    global tmpvar_n
-    global quad_count
-    tmpvar_n += 1
-    tn = 't' + str(tmpvar_n)
-    quad_gen(('<-', control, None, 'vcontrol'))
-    quad_gen(('<-', expr, None, 'vfinal'))
-    quad_gen(('<', 'vcontrol', 'vfinal', tn))
-
-    tn = 't' + str(tmpvar_n)
     S.Jumps.append(quad_count)
     quad_gen(('GotoF', tn, None, None))
     S.Jumps.append(quad_count)
@@ -896,18 +941,19 @@ def p_for_end(p):
     '''
     for_end :
     '''
-    global tmpvar_n
-    tmpvar_n += 1
-    tn = 't' + str(tmpvar_n)
-
-    quad_gen(('+', 'vcontrol', 1, tn))
-    quad_gen(('<-', tn, None, 'vcontrol'))
-    quad_gen(('<-', tn, 1, S.Symbols[len(S.Symbols) - 1]))
+    tn = temporary_handler(0, False)
+    one = constant_handler([1], (0, 'int'), False)
+    control = quad_address(S.Symbols[len(S.Symbols) - 1])
+    vcontrol = find('vcontrol', 'var')
+    quad_gen(('+', vcontrol.v_address, one.v_address, tn))
+    quad_gen(('<-', tn, None, vcontrol.v_address))
+    quad_gen(('<-', tn, None, control))
 
     end = S.Jumps.pop()
     goback = S.Jumps.pop()
     quad_gen(('Goto', None, None, goback))
     quadruples.quadruples[end].storage = quad_count + 1
+
     S.Symbols.pop()
     S.Types.pop()
 

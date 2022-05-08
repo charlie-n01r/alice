@@ -44,6 +44,12 @@ Se agregó una función a manera de _log_ para exportar información pertinente 
 ## Avance 4:
 En `alice_yacc.py` se agregaron los puntos neurálgicos para lo estatutos no lineales **if-then-else**, **while**, **do while** y **for**. Así mismo, se optimizó la creación de cuadruplos y se agregó el campo de _Largos_ al log para poder confirmar si la pila de operandos tiene el mismo largo que la pila de tipos al final de la ejecución.
 
+Se simplificó la manera en la que se maneja la declaración de modulos y se agregó una verificación semántica para los estatutos de retorno para evitar returns globales, en main o funciones void.
+
 Se identificó el bug encontrado en el avance 3.5, el cual ocurría cuando una expresión como `x++;` o similares, se ponían como único elemento de un estatuto, causando que nunca fueran sacados de la tabla de operadores, y por consiguiente, tampoco sus tipos.
 
 Se eliminó de memoria el espacio reservado para strings temporales debido a que el lenguaje realmente no realiza operaciones con strings, por lo que son innecesarios. El espacio que ocupaban se le asignó a los bools temporales para poder tener más evaluaciones de lógica booleana.
+
+Se agregó la creación del cuádruplo "Goto, MAIN", el cual actualmente no tiene funcionalidad y se reemplazó el uso de IDs en cuádruplos por el uso de direcciones de memoria virtual. Así mismo se empezó a contabilizar la memoria de variables temporales y se agregó manejo de errores para los casos de _too many constants_ y _too many variables_ para todos los ambientes (locales, globales y temporales). Se incluyó también la lógica para meter modulos dentro del directorio de funciones y el comienzo del código para conservar los parámetros formales de una función declarada.
+
+Finalmente, se cambió la manera en la que funciona la exportación por medio de JSON para incluir también la tabla de constantes y para hacer la lógica extendible en caso de que se necesite exportar más información para la máquina virtual.
