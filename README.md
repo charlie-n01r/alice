@@ -53,3 +53,10 @@ Se eliminó de memoria el espacio reservado para strings temporales debido a que
 Se agregó la creación del cuádruplo "Goto, MAIN", el cual actualmente no tiene funcionalidad y se reemplazó el uso de IDs en cuádruplos por el uso de direcciones de memoria virtual. Así mismo se empezó a contabilizar la memoria de variables temporales y se agregó manejo de errores para los casos de _too many constants_ y _too many variables_ para todos los ambientes (locales, globales y temporales). Se incluyó también la lógica para meter modulos dentro del directorio de funciones y el comienzo del código para conservar los parámetros formales de una función declarada.
 
 Finalmente, se cambió la manera en la que funciona la exportación por medio de JSON para incluir también la tabla de constantes y para hacer la lógica extendible en caso de que se necesite exportar más información para la máquina virtual.
+
+## Avance 5:
+Se agregaron los puntos neurálgicos y la lógica detrás del parseo de creación y llamada de módulos, así como la verificación semántica que implican las operaciones entre modulos, las asignaciones de modulos a variables y la lógica de los estatutos tipo **return**.
+
+En `structs.py` se modificó la función _clear_ para limpiar solamente la memoria local entre definiciones de funciones, y así reutilizar espacios de memoria entre modulos. Se agregó también la creación de los cuádruplos relacionados con funciones y llamadas, y se creó la lógica que reemplaza el "Main" en el cuádruplo "Goto Main" por el índice del primer cuádruplo de la función main.
+
+Por último, se agregó todo el manejo de errores relacionado con las operaciones mencionadas anteriormente, y se optimizó la lógica de un par de mensajes de error.

@@ -8,6 +8,7 @@ from structs import *
 #--------------------------Environment Setup------------------------------------
 tmpvar_n = -1
 quad_count = -1
+fun = False
 
 S = stacks()
 funDir = mdl_dir()
@@ -16,7 +17,6 @@ variables = var_table()
 quadruples = quadruple_list()
 
 memory = memory()
-memory.clear()
 env = 'global'
 
 #--------------------------Auxiliary Functions----------------------------------
@@ -217,7 +217,7 @@ def p_global(p):
 
 def p_main(p):
     '''
-    main : MAIN lclenv_setup stmtblock lclenv_end
+    main : MAIN lclenv_setup stmtblock
     '''
 
 def p_stmtblock(p):
@@ -352,30 +352,28 @@ def p_expression(p):
     '''
     expression : expr SEMICOLON
     '''
+    p[0] = p[1]
 
 def p_expr(p):
     '''
     expr : andexpr
          | expr OR neuralgic_opr andexpr neuralgic_expr
     '''
-    if len(p) <= 2:
-        p[0] = p[1]
+    p[0] = p[1]
 
 def p_andexpr(p):
     '''
     andexpr : eqlexpr
             | andexpr AND neuralgic_opr eqlexpr neuralgic_expr
     '''
-    if len(p) <= 2:
-        p[0] = p[1]
+    p[0] = p[1]
 
 def p_eqlexpr(p):
     '''
     eqlexpr : relexpr
             | eqlexpr eqop neuralgic_opr relexpr neuralgic_expr
     '''
-    if len(p) <= 2:
-        p[0] = p[1]
+    p[0] = p[1]
 
 def p_eqop(p):
     '''
@@ -389,8 +387,7 @@ def p_relexpr(p):
     relexpr : sumexpr
             | relexpr relop neuralgic_opr sumexpr neuralgic_expr
     '''
-    if len(p) <= 2:
-        p[0] = p[1]
+    p[0] = p[1]
 
 def p_relop(p):
     '''
@@ -406,8 +403,7 @@ def p_sumexpr(p):
     sumexpr : term
             | sumexpr sumop neuralgic_opr term neuralgic_expr
     '''
-    if len(p) <= 2:
-        p[0] = p[1]
+    p[0] = p[1]
 
 def p_sumop(p):
     '''
@@ -421,8 +417,7 @@ def p_term(p):
     term : unary
          | term mulop neuralgic_opr unary neuralgic_expr
     '''
-    if len(p) <= 2:
-        p[0] = p[1]
+    p[0] = p[1]
 
 def p_mulop(p):
     '''
@@ -437,8 +432,7 @@ def p_unary(p):
     unary : postfix
           | MINUS neuralgic_opr postfix neuralgic_unary
     '''
-    if len(p) <= 2:
-        p[0] = p[1]
+    p[0] = p[1]
 
 def p_postfix(p):
     '''
@@ -460,7 +454,7 @@ def p_factor(p):
            | value
            | variable neuralgic_var
            | systemdef
-           | call
+           | call add_call
     '''
     if len(p) == 4:
         p[0] = p[3]
@@ -534,18 +528,15 @@ def p_systemdef(p):
 
 def p_call(p):
     '''
-    call : ID LPAREN funparam RPAREN
+    call : ID verify_ID LPAREN funparam neuralgic_call RPAREN
     '''
-    p[0] = p[1], p[2], p[3], p[4]
+    p[0] = p[1], p[3]
 
 #-------------------------------Typed Rules-------------------------------------
 def p_return(p):
     '''
-    return : RETURN expression
+    return : RETURN expression neuralgic_return
     '''
-    if env not in ['int', 'float', 'string']:
-        print(f"Error! Cannot return in '{env}' context!")
-        quit()
 
 def p_type(p):
     '''
@@ -561,27 +552,97 @@ def p_lclenv_setup(p):
     lclenv_setup :
     '''
     if p[-3] == 'begin':
-        program = mdl_object(p[-1], 'void', 1, variables, None)
+        program = mdl_object(p[-1], 'void', quad_count, variables, None, None)
         funDir.append(program)
     else:
         global env
         env = p[-1]
         if env != 'main':
-            program = mdl_object(p[-3], env, None, None, None)
+            if env in ['int', 'float', 'string']:
+                type = None
+                address = None
+                for module in funDir.modules:
+                    if module.ID == p[-3]:
+                        print(f"Error! Module '{p[-3]}' already exists!")
+                        quit()
+                if find(p[-3], 'var') != False:
+                    print(f"Error! Cannot create module '{p[-3]}', name already reserved!")
+                    quit()
+
+                if env == 'int':
+                    type = (0, env)
+                    address = memory.gbli[0] + memory.gbli[1]
+                    if address >= memory.gblf[0]:
+                        print(f'Error! Too many global integer variables!')
+                        quit()
+                    memory.gbli[1] += 1
+                elif env == 'float':
+                    type = (1, env)
+                    address = memory.gblf[0] + memory.gblf[1]
+                    if address >= memory.gbls[0]:
+                        print(f'Error! Too many global float variables!')
+                        quit()
+                    memory.gblf[1] += 1
+                elif env == 'string':
+                    type = (2, env)
+                    address = memory.gbls[0] + memory.gbls[1]
+                    if address >= memory.lcli[0]:
+                        print(f'Error! Too many global string variables!')
+                        quit()
+                    memory.gbls[1] += 1
+                new_var = var_object(p[-3], type, address, 1)
+                variables.append(new_var)
+            program = mdl_object(p[-3], env, quad_count + 1, None, None, None)
             funDir.append(program)
+        else:
+            goback = S.Jumps.pop()
+            quadruples.quadruples[goback].storage = quad_count + 1
 
 def p_lclenv_end(p):
     '''
     lclenv_end :
     '''
+    memory.clear()
     global env
+    global tmpvar_n
+    tmpvar_n = -1
     env = 'global'
+    size = [[0, 0, 0],[0, 0, 0]]
+    temp = var_table()
+    aux = []
+    temp.var_list = variables.copy()
+    for i in range(len(temp.var_list)):
+        if temp.var_list[i].v_address >= 6000 and temp.var_list[i].v_address < 8000:
+            size[0][0] += 1
+            continue
+        elif temp.var_list[i].v_address >= 8000 and temp.var_list[i].v_address < 10000:
+            size[0][1] += 1
+            continue
+        elif temp.var_list[i].v_address >= 10000 and temp.var_list[i].v_address < 11000:
+            size[0][2] += 1
+            continue
+        elif temp.var_list[i].v_address >= 11000 and temp.var_list[i].v_address < 16000:
+            size[1][0] += 1
+            continue
+        elif temp.var_list[i].v_address >= 16000 and temp.var_list[i].v_address < 21000:
+            size[1][1] += 1
+            continue
+        elif temp.var_list[i].v_address >= 21000 and temp.var_list[i].v_address < 26000:
+            size[1][2] += 1
+            continue
+        aux.append(temp.var_list[i])
+
+    funDir.modules[-1].variables = temp
+    funDir.modules[-1].size = size
+    variables.var_list = aux
+    quad_gen(('EndModule', None, None, None))
 
 def p_beginprog(p):
     '''
     beginprog :
     '''
     quad_gen(('Goto', None, None, 'Main'))
+    S.Jumps.append(quad_count)
 
 def p_popexpr(p):
     '''
@@ -719,17 +780,30 @@ def p_neuralgic_params(p):
     neuralgic_params :
     '''
     if p[-1] == None:
-        print('No parameters')
+        return
     else:
         params = []
+        type = None
         IDList = [ID for ID in list(get_IDs(p[-1])) if ID != None]
         for i in range(1, len(IDList), 2):
             if IDList[i] == 'int':
+                type = 0
+                address = memory.lcli[0] + memory.lcli[1]
+                memory.lcli[1] += 1
                 params.append(0)
             elif IDList[i] == 'float':
+                type = 1
+                address = memory.lclf[0] + memory.lclf[1]
+                memory.lclf[1] += 1
                 params.append(1)
             else:
+                type = 2
+                address = memory.lcls[0] + memory.lcls[1]
+                memory.lcls[1] += 1
                 params.append(2)
+
+            new_var = var_object(IDList[i-1], (type, IDList[i]), address, 1)
+            variables.append(new_var)
         funDir.modules[-1].prototyping = params
 
 def p_neuralgic_paren(p):
@@ -806,6 +880,76 @@ def p_neuralgic_input(p):
 
     quad_gen(('Print', None, None, msg))
     quad_gen(('Input', None, None, storage.v_address))
+
+def p_verify_ID(p):
+    '''
+    verify_ID :
+    '''
+    global fun
+    for module in funDir.modules:
+        if module.ID == p[-1]:
+            fun = module
+            break
+    if not fun:
+        print(f"Error! Module '{p[-1]}' does not exist!")
+        quit()
+
+    quad_gen(('ARE', fun.size[0], fun.size[1], None))
+
+def p_neuralgic_call(p):
+    '''
+    neuralgic_call :
+    '''
+    global fun
+    if p[-1] == None:
+        if fun.prototyping == None:
+            return
+        else:
+            print(f"Error! No arguments received! Expected {len(fun.prototyping)}.")
+            quit()
+
+    IDList = [ID for ID in list((get_IDs(p[-1]))) if ID != None]
+    if len(IDList) != None and fun.prototyping == None:
+        print(f"Error! Call to '{fun.ID}' received too many arguments! Expected no arguments, received {len(IDList)}.")
+        quit()
+    if len(IDList) != len(fun.prototyping):
+        print(f"Error! Call to '{fun.ID}' received incorrect amount of arguments! Expected {len(fun.prototyping)}, received {len(IDList)}.")
+        quit()
+
+    aux = [(S.Symbols.pop(), S.Types.pop()) for i in range(len(IDList))]
+    for i in range(len(IDList)):
+        prototype = fun.prototyping[i]
+        param = aux.pop()
+        if prototype != param[1][0]:
+            print(f"Error! Type mismatch in function call to '{fun.ID}' with parameter {i+1}!")
+            quit()
+
+        var = find(param[0], 'cte')
+        if not var:
+            var = find(param[0], 'var')
+        quad_gen(('Parameter', None, var.v_address, i+1))
+    quad_gen(('GoSub', None, None, fun.beginning))
+    fun = False
+
+def p_add_call(p):
+    '''
+    add_call :
+    '''
+    fun = False
+    for module in funDir.modules:
+        if module.ID == p[-1][0]:
+            fun = module
+    type = None
+    if fun.type == 'int':
+        type = (0, fun.type)
+    elif fun.type == 'float':
+        type = (1, fun.type)
+    elif fun.type == 'string':
+        type = (2, fun.type)
+    else:
+        type = (-1, fun.type)
+    S.Symbols.append(fun.ID)
+    S.Types.append(type)
 
 def p_neuralgic_if(p):
     '''
@@ -891,7 +1035,7 @@ def p_for_id(p):
         print(f"Error! Variable '{p[-1]}' not found!")
         quit()
     if var.type[0] > 0:
-        print(f"Semantic error! Type mismatch! Expected int, got {var.type[1]}!")
+        print(f"Semantic error! Type mismatch! Expected int, got {var.type[1]}.")
         quit()
 
     S.Symbols.append(var.ID)
@@ -903,7 +1047,7 @@ def p_for_expr(p):
     '''
     expr_type = S.Types.pop()
     if expr_type[0] > 0:
-        print(f"Semantic error! Type mismatch! Expected int, got {expr_type[1]}!")
+        print(f"Semantic error! Type mismatch! Expected int, got {expr_type[1]}.")
         quit()
     expr = quad_address()
     control = quad_address(S.Symbols[len(S.Symbols) - 1])
@@ -922,7 +1066,7 @@ def p_neuralgic_for(p):
     '''
     expr_type = S.Types.pop()
     if expr_type[0] > 0:
-        print(f"Semantic error! Type mismatch! Expected int, got {expr_type[1]}!")
+        print(f"Semantic error! Type mismatch! Expected int, got {expr_type[1]}.")
         quit()
     expr = quad_address()
     control = quad_address(S.Symbols[len(S.Symbols) - 1])
@@ -956,6 +1100,23 @@ def p_for_end(p):
 
     S.Symbols.pop()
     S.Types.pop()
+
+def p_neuralgic_return(p):
+    '''
+    neuralgic_return :
+    '''
+    if env not in ['int', 'float', 'string']:
+        print(f"Error! Cannot return in '{env}' context!")
+        quit()
+
+    result_type = S.Types.pop()
+    if env != result_type[1]:
+        print(f"Error! Return type mismatch! Expected {env}, got {result_type[1]}")
+        quit()
+
+    result = quad_address()
+    storage = quad_address(funDir.modules[-1].ID)
+    quad_gen(('Return', None, result, storage))
 
 #------------------------------Aux Rules----------------------------------------
 def p_empty(p):

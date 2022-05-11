@@ -35,6 +35,9 @@ class var_table:
     def append(self, value):
         self.var_list.append(value)
 
+    def copy(self):
+        return self.var_list.copy()
+
     def __repr__(self):
         return f'{self.var_list}'
 
@@ -54,15 +57,16 @@ class cte_table:
         self.cte_list.append(value)
 
 class mdl_object:
-    def __init__(self, ID, type, beginning, table, values):
+    def __init__(self, ID, type, beginning, table, values, size):
         self.ID = ID
         self.type = type
         self.beginning = beginning
         self.variables = table
         self.prototyping = values
+        self.size = size
 
     def __repr__(self):
-        return f'({self.ID}, {self.type}, {self.beginning}, {self.variables}, {self.prototyping})'
+        return f'({self.ID}, {self.type}, {self.beginning}, {self.variables}, {self.prototyping}, {self.size})'
 
 class mdl_dir:
     def __init__(self):
@@ -87,7 +91,6 @@ class quadruple_list:
 
     def append(self, quadruple):
         self.quadruples.append(quadruple)
-
 
 class stacks:
     def __init__(self):
@@ -115,10 +118,6 @@ class memory:
         self.ctes = [30000, 0]
 
     def clear(self):
-        self.gbli[1] = 0
-        self.gblf[1] = 0
-        self.gbls[1] = 0
-
         self.lcli[1] = 0
         self.lclf[1] = 0
         self.lcls[1] = 0
@@ -126,7 +125,3 @@ class memory:
         self.tmpi[1] = 0
         self.tmpf[1] = 0
         self.tmpb[1] = 0
-
-        self.ctei[1] = 0
-        self.ctef[1] = 0
-        self.ctes[1] = 0
