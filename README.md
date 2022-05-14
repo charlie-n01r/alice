@@ -70,10 +70,10 @@ Se creó también un archivo ejecutable llamado `alice`, el cuál sirve como ree
 
 Hay dos maneras de procesar un archivo al momento de correr `alice`:
   1. **Pasarle archivos como argumentos**:
-    ```bash
-    user@linux:~/alice$ ./alice test0.aaw test1.aaw
-    ```
-    Al utilizar este método, `alice` iterará sobre los archivos y los procesará uno por uno. En caso de que alguno tenga un error de compilación, se le notificará al usuario y se detendrá por completo el proceso de compilación de los demás archivos, en caso de haber.
+  ```bash
+  user@linux:~/alice$ ./alice test0.aaw test1.aaw
+  ```
+  Al utilizar este método, `alice` iterará sobre los archivos y los procesará uno por uno. En caso de que alguno tenga un error de compilación, se le notificará al usuario y se detendrá por completo el proceso de compilación de los demás archivos, en caso de haber.
 
   2. **Correr `alice` sin argumentos**:
   ```bash
