@@ -55,8 +55,28 @@ Se agregó la creación del cuádruplo "Goto, MAIN", el cual actualmente no tien
 Finalmente, se cambió la manera en la que funciona la exportación por medio de JSON para incluir también la tabla de constantes y para hacer la lógica extendible en caso de que se necesite exportar más información para la máquina virtual.
 
 ## Avance 5:
-Se agregaron los puntos neurálgicos y la lógica detrás del parseo de creación y llamada de módulos, así como la verificación semántica que implican las operaciones entre modulos, las asignaciones de modulos a variables y la lógica de los estatutos tipo **return**.
+Se agregaron los puntos neurálgicos y la lógica detrás del parseo de creación y llamada de módulos, así como la verificación semántica que implican las operaciones entre modulos, las asignaciones de modulos a variables y la lógica de los estatutos tipo `return`.
 
 En `structs.py` se modificó la función _clear_ para limpiar solamente la memoria local entre definiciones de funciones, y así reutilizar espacios de memoria entre modulos. Se agregó también la creación de los cuádruplos relacionados con funciones y llamadas, y se creó la lógica que reemplaza el "Main" en el cuádruplo "Goto Main" por el índice del primer cuádruplo de la función main.
 
 Por último, se agregó todo el manejo de errores relacionado con las operaciones mencionadas anteriormente, y se optimizó la lógica de un par de mensajes de error.
+
+## Avance 5.5:
+En `structs.py` se cambió el orden en el que se genera el archivo `vm_input.json`, al cual se le incluyó también los _starting points_ de la memoria para poder calcular el _offset_ en la máquina virtual.
+
+Se creó el prototipo de la máquina virtual, construida utilizando el lenguaje de programación **Julia**. Este archivo lee el contenido de `vm_input.json`, que funciona básicamente como un _pseudo archivo OBJ_ parsea sus contenidos a un diccionario, y cicla a través de los cuádruplos para ejecutar sus instrucciones. Por el momento, sólamente puede procesar los estatutos de `print`, así como la parte de impresión de mensaje de los estatutos `input`.
+
+Se creó también un archivo ejecutable llamado `alice`, el cuál sirve como reemplazo del archivo `compile.py`, pero con algunas funcionalidades extra. Este archivo está escrito en **bash** y se encarga de correr `alice_yacc.py` y posteriormente la máquina virtual `vm.jl`, así como el manejo de errores necesario para manejar situaciones en donde la compilación no haya sido exitosa.
+
+Hay dos maneras de procesar un archivo al momento de correr `alice`:
+  1. **Pasarle archivos como argumentos**:
+    ```bash
+    user@linux:~/alice$ ./alice test0.aaw test1.aaw
+    ```
+    Al utilizar este método, `alice` iterará sobre los archivos y los procesará uno por uno. En caso de que alguno tenga un error de compilación, se le notificará al usuario y se detendrá por completo el proceso de compilación de los demás archivos, en caso de haber.
+
+  2. **Correr `alice` sin argumentos**:
+  ```bash
+  user@linux:~/alice$ ./alice
+  ```
+  Al usar este método, el usuario entrará a una pequeña interfaz que le solicitará el nombre de un archivo que quiera parsear. Si se le inserta la frase `quit()` se terminará la ejecución del compilador, si se le provee el nombre de un archivo, lo intenterá compilar. Posteriormente, se le preguntará al ususario si desea compilar otro archivo, si el ususario inserta **n**, la ejecución de `alice` terminará, de lo contrario, se le volverá a solicitar al ususario el nombre de un archivo.

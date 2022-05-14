@@ -1,5 +1,5 @@
 import ply.yacc as yacc
-
+from sys import argv
 from collections.abc import Iterable
 from alice_lex import tokens
 from sem_cube import get_result
@@ -126,7 +126,7 @@ def constant_handler(p, cte, append=True):
             memory.ctef[1] += 1
         else:
             address = memory.ctes[0] + memory.ctes[1]
-            if address >= 31000:
+            if address >= 30000:
                 print(f'Error! Too many string literals!')
                 quit()
             memory.ctes[1] += 1
@@ -198,13 +198,13 @@ def get_IDs(IDList):
 
 def end_yacc():
     with open('log.txt', 'w') as file:
-        file.write(f'Final Status:\nOperands: {S.Symbols}\nTypes: {S.Types}\nModules: {funDir.modules}\nOperators: {S.Operators}\nTemp. Variables: {[memory.tmpi[1], memory.tmpf[1], memory.tmpb[1]]}\nQuad Count: {quad_count + 1}\nVar. Table: {variables.var_list}')
-    export(quadruples, constants)
+         file.write(f'Final Status:\nOperands: {S.Symbols}\nTypes: {S.Types}\nModules: {funDir.modules}\nOperators: {S.Operators}\nTemp. Variables: {[memory.tmpi[1], memory.tmpf[1], memory.tmpb[1]]}\nQuad Count: {quad_count + 1}')
+    export(quadruples, constants, funDir)
 
 #---------------------------Program Structure-----------------------------------
 def p_program(p):
     '''
-    program : BEGIN beginprog ID lclenv_setup COLON global ENDPROG
+    program : BEGIN beginprog ID lclenv_setup COLON global ENDPROG endprog
     '''
     end_yacc()
 
@@ -453,7 +453,7 @@ def p_factor(p):
     factor : LPAREN neuralgic_opr expr RPAREN neuralgic_paren
            | value
            | variable neuralgic_var
-           | systemdef
+           | systemdef neuralgic_stats
            | call add_call
     '''
     if len(p) == 4:
@@ -524,7 +524,7 @@ def p_systemdef(p):
               | STD LPAREN ID RPAREN
               | RANGE LPAREN ID RPAREN
     '''
-    p[0] = p[1], p[2], p[3], p[4]
+    p[0] = p[1], p[3]
 
 def p_call(p):
     '''
@@ -643,6 +643,12 @@ def p_beginprog(p):
     '''
     quad_gen(('Goto', None, None, 'Main'))
     S.Jumps.append(quad_count)
+
+def p_endprog(p):
+    '''
+    endprog :
+    '''
+    quad_gen(('EndProgram', None, None, None))
 
 def p_popexpr(p):
     '''
@@ -878,8 +884,7 @@ def p_neuralgic_input(p):
         print(f"Error! Variable '{p[-2]}' doesn't exist!")
         quit()
 
-    quad_gen(('Print', None, None, msg))
-    quad_gen(('Input', None, None, storage.v_address))
+    quad_gen(('Input', None, msg, storage.v_address))
 
 def p_verify_ID(p):
     '''
@@ -903,6 +908,8 @@ def p_neuralgic_call(p):
     global fun
     if p[-1] == None:
         if fun.prototyping == None:
+            quad_gen(('GoSub', None, None, fun.beginning))
+            fun = False
             return
         else:
             print(f"Error! No arguments received! Expected {len(fun.prototyping)}.")
@@ -1101,6 +1108,21 @@ def p_for_end(p):
     S.Symbols.pop()
     S.Types.pop()
 
+def p_neuralgic_stats(p):
+    '''
+    neuralgic_stats :
+    '''
+    type = 0 if p[-1][0] == 'size' else 1
+    address = temporary_handler(type)
+    res = find(p[-1][1], 'var')
+    if not res:
+        print(f"Error! Variable '{p[-1][1]}' does not exist!")
+        quit()
+    if res.arr_size == 1:
+        print(f"Error! Variable '{p[-1][1]}' is not an array!")
+        quit()
+    quad_gen((p[-1][0].capitalize(), None, res.v_address, address))
+
 def p_neuralgic_return(p):
     '''
     neuralgic_return :
@@ -1133,3 +1155,12 @@ def p_error(t):
     quit()
 
 parser = yacc.yacc()
+
+try:
+    test_file = open(argv[1])
+    source_code = test_file.read()
+    test_file.close()
+except FileNotFoundError:
+    print(f'Error! File {argv[1]} not found!')
+    quit()
+parser.parse(source_code)

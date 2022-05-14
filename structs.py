@@ -1,13 +1,13 @@
 import json
 
-def export(Q, C):
+def export(Q, C, D):
     export_dict= {}
 
     temp = []
-    for quadruple in Q.quadruples:
-        quad = [quadruple.operation, quadruple.operand1, quadruple.operand2, quadruple.storage]
-        temp.append(quad)
-    export_dict['quadruples'] = temp
+    for module in D.modules:
+        mdl = [module.ID, module.type, module.beginning, module.size]
+        temp.append(mdl)
+    export_dict['modules'] = temp
 
     temp = []
     for constant in C.cte_list:
@@ -15,8 +15,17 @@ def export(Q, C):
         temp.append(cte)
     export_dict['constants'] = temp
 
+    temp = []
+    for quadruple in Q.quadruples:
+        quad = [quadruple.operation, quadruple.operand1, quadruple.operand2, quadruple.storage]
+        temp.append(quad)
+    export_dict['code'] = temp
+
+    temp = [1000, 3000, 5000, 6000, 8000, 10000, 11000, 16000, 21000, 26000, 27500, 29000]
+    export_dict['base memory'] = temp
+
     with open('vm_input.json', 'w', encoding='utf-8') as file:
-        json.dump(export_dict, file, ensure_ascii=False, indent=4)
+        json.dump(export_dict, file, ensure_ascii=False, indent=2)
 
 class var_object:
     def __init__(self, ID, type, v_address, arr_size):
@@ -114,8 +123,8 @@ class memory:
         self.tmpb = [21000, 0]
 
         self.ctei = [26000, 0]
-        self.ctef = [28000, 0]
-        self.ctes = [30000, 0]
+        self.ctef = [27500, 0]
+        self.ctes = [29000, 0]
 
     def clear(self):
         self.lcli[1] = 0
