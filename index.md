@@ -53,10 +53,10 @@ pi2 <- 6.283184;
 
 ## I/O
 ### Input
-Para recibir información del usuario en Alice se utiliza la función de `input`. Esta función recibe un parámetro opcional en forma de una constante _string_ o una expresión para imprimir un mensaje que indique al usuario que está esperando un valor de entrada. Una vez recibido el valor, el compilador intentará parsear el dato recibido a uno de los tipos establecidos y asignarlo a una variable a través del operador de asignación `<-`.
+Para recibir información del usuario en Alice se utiliza la función de `input`. Esta función recibe dos parámetros en forma de una constante _string_ o una expresión para imprimir un mensaje que indique al usuario que está esperando un valor de entrada, así como la variable a la que se le asignará el valor. Una vez recibido el valor, el compilador intentará parsear el dato recibido a uno de los tipos establecidos y asignarlo a la variable señalada si son del mismo tipo.
 
 ```matlab
-test <- input("Inserte una lista de números: ");
+input("Inserte una lista de números:", test);
 ```
 ```
 Inserte una lista de números: 1,2,3_
@@ -112,9 +112,9 @@ while x > 0:
   x--;
 end
 
-do while (1 < 0):
+do:
   print("Si se ejecuta");
-end
+end while (1 < 0);
 ```
 ```
 3
@@ -127,16 +127,8 @@ Si se ejecuta
 Adicional a los ciclos anteriores, existe también el ciclo `for`. Este ciclo contiene atributos diferentes, separados por un punto y coma (`;`). El primer atributo es una declaración con asignación, o una asignación a secas, de la variable que se utilizará a lo largo del ciclo. En seguida está una expresión, similar a la que se utiliza en los ciclos _while_ y _do while_. El tercer atributo es una operación que permita cambiar el valor que recibió la asignación para acercar el ciclo a la condición de salida. Usualmente los ciclos for se utilizan para navegar a través de listas usando la variable inicializada como índice de la lista.
 
 ```matlab
-let L::int[3];
-let L <- [1, 2, 4.0];
-let i::int;
-
-for (i <- 2; i >= 0; i--):
-  L[i] <- i;
-end
-
-for(i <- 0; i < 3; i++):
-  print(L[x]);
+for i <- 0:3 :
+  print(i);
 end
 ```
 ```
@@ -183,7 +175,6 @@ Uno de los grupos de funciones más importantes en Alice son las funciones de [e
   - Moda (`mode`)
   - Varianza (`variance`)
   - Desviación Estándar (`std`)
-  - Rango (`range`)
   - Tamaño (`size`)
 
 Todas las anteriores funciones reciben un sólo parámetro, una expresión, y retornan siempre un resultado en tipo _float_, a excepción del rango y el tamaño. `range` siempre retorna una lista con los valores mínimos y máximos de un set de datos, mientras que `size` siempre retorna un entero.
@@ -199,8 +190,8 @@ stats[2] <-mode(data);
 stats[3] <-variance(data);
 stats[4] <- std(data);
 
-for(x <- 0; x < size(results); x++):
-  print(stats[x])
+for x <- 0:size(results):
+  print(stats[x]);
 end
 
 print(range(data));
@@ -211,7 +202,6 @@ print(range(data));
 70
 377.6421052631579
 19.433015856092894
-[9, 100]
 ```
 
 ## Diagramas de sintaxis:
