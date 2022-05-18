@@ -15,7 +15,7 @@ El lenguaje Alice cuenta con la siguiente jeraquía de operadores:
 | Precedencia | Operador                     | Descripción                               | Asociatividad |
 |:------------|:-----------------------------|:------------------------------------------|:--------------|
 | 1           | `x++`, `x--`                 | Incremento y decremento                   | Izq a Der 🡲  |
-| 2           | `+x`, `-x`                   | Más y menos unario                        | Der a Izq 🡰  |
+| 2           | `-x`                         | Menos unario                              | Der a Izq 🡰  |
 | 3           | `x^y`, `x*y`, `x/y`          | Exponenciación, Multiplicación y división | Izq a Der 🡲  |
 | 4           | `x+y`, `x-y`                 | Suma y resta binaria                      | Izq a Der 🡲  |
 | 5           | `x<y`, `x<=y`, `x>y`, `x>=y` | Operadores relacionales                   | Izq a Der 🡲  |
@@ -216,4 +216,4 @@ print(range(data));
 
 ## Diagramas de sintaxis:
 
-![Alice Language](https://user-images.githubusercontent.com/67932262/163838463-5f96f61e-75fe-4325-8a0f-53e065ca5333.png)
+![Alice Language](https://user-images.githubusercontent.com/67932262/169110954-5a77767f-8102-474b-ab6e-9dca3ddd6cca.png)
