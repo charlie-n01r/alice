@@ -1,7 +1,7 @@
 import json
 
 def export(Q, C, D):
-    export_dict= {}
+    export_dict = {}
 
     temp = []
     for module in D.modules:
@@ -24,7 +24,7 @@ def export(Q, C, D):
     temp = [1000, 3000, 5000, 6000, 8000, 10000, 11000, 16000, 21000, 26000, 27500, 29000]
     export_dict['base memory'] = temp
 
-    with open('vm_input.json', 'w', encoding='utf-8') as file:
+    with open('obj.json', 'w', encoding='utf-8') as file:
         json.dump(export_dict, file, ensure_ascii=False, indent=2)
 
 class var_object:

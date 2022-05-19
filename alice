@@ -2,25 +2,25 @@ if [ $# -eq 0 ]; then
   echo "$(cat logo)"
   loop="y"
   while [ $loop = "y" ]; do
-    rm -f vm_input.json
+    rm -f obj.json
     printf  "\nInsert file name: "
     read file
     if [ $file = "quit()" ]; then
       break
     fi
     python3 alice_yacc.py $file;
-    julia vm.jl
+    julia virtual_machine.jl
     printf  "\nRead another file?[y/n]: "
     read loop
   done
 else
   for arg; do
-    rm -f vm_input.json
+    rm -f obj.json
     python3 alice_yacc.py $arg;
-    if ! ls | grep -q vm_input.json; then
+    if ! ls | grep -q obj.json; then
       echo "$arg compilation unsuccessful!"
       break
     fi
-    julia vm.jl
+    julia virtual_machine.jl
   done
 fi

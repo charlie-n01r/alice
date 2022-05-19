@@ -10,7 +10,7 @@ Cube = {
             #op1 is int           #op1 is float         #op1 is string                #op1 is bool
     '^'   : [[0, 1, False, False], [1, 1, False, False], [False, False, False, False], [False, False, False, False]],
     '*'   : [[0, 1, False, False], [1, 1, False, False], [False, False, False, False], [False, False, False, False]],
-    '/'   : [[0, 1, False, False], [1, 1, False, False], [False, False, False, False], [False, False, False, False]],
+    '/'   : [[1, 1, False, False], [1, 1, False, False], [False, False, False, False], [False, False, False, False]],
     '*'   : [[0, 1, False, False], [1, 1, False, False], [False, False, False, False], [False, False, False, False]],
     '+'   : [[0, 1, False, False], [1, 1, False, False], [False, False, False, False], [False, False, False, False]],
     '-'   : [[0, 1, False, False], [1, 1, False, False], [False, False, False, False], [False, False, False, False]],

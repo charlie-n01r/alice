@@ -185,8 +185,13 @@ def unary_handler(p, operator):
                 quit()
 
         der_address = quad_address()
-        tn = temporary_handler(res)
-        quad_gen((operator, None, der_address, tn))
+        if operator == '-':
+            tn = temporary_handler(res)
+            quad_gen((operator, None, der_address, tn))
+        else:
+            S.Symbols.append(p[-3])
+            S.Types.append(type_der)
+            quad_gen((operator, None, der_address, der_address))
 
 def get_IDs(IDList):
      for item in IDList:
@@ -339,8 +344,18 @@ def p_others(p):
 
 def p_idxsize(p):
     '''
-    idxsize : L_SBRKT CTE_I R_SBRKT
+    idxsize : L_SBRKT CTE_I matrix R_SBRKT
             | empty
+    '''
+    if len(p) > 2:
+        p[0] = p[2], p[3]
+    else:
+        p[0] = p[1]
+
+def p_matrix(p):
+    '''
+    matrix : COMA CTE_I
+           | empty
     '''
     if len(p) > 2:
         p[0] = p[2]
@@ -432,7 +447,10 @@ def p_unary(p):
     unary : postfix
           | MINUS neuralgic_opr postfix neuralgic_unary
     '''
-    p[0] = p[1]
+    if len(p) > 2:
+        p[0] = p[3]
+    else:
+        p[0] = p[1]
 
 def p_postfix(p):
     '''
@@ -456,7 +474,7 @@ def p_factor(p):
            | systemdef neuralgic_stats
            | call add_call
     '''
-    if len(p) == 4:
+    if len(p) > 3:
         p[0] = p[3]
     else:
         p[0] = p[1]
@@ -473,9 +491,10 @@ def p_variable(p):
     '''
     variable : ID
              | ID L_SBRKT expr R_SBRKT
+             | ID L_SBRKT expr COMA expr R_SBRKT
     '''
     if len(p) > 3:
-        p[0] = p[1], p[2], p[3], p[4]
+        p[0] = p[1], p[3], p[4]
     else:
         p[0] = p[1]
 
@@ -671,7 +690,7 @@ def p_neuralgic_assign(p):
 
         res = get_result((p[-2], type_izq[0], type_der[0]))
         if res is False:
-            print(f'Semantic error! Type mismatch! Got {type_izq[1]} and {type_der[1]}!')
+            print(f'Semantic error! Type mismatch: Got {type_izq[1]} and {type_der[1]}!')
             quit()
 
         der_address = quad_address()
@@ -681,12 +700,20 @@ def p_neuralgic_dec(p):
     '''
     neuralgic_dec :
     '''
+    if p[-1] == None:
+        arr_size = 1
+    elif p[-1][1] == None:
+        arr_size = int(p[-1][0])
+    else:
+        arr_size = p[-1]
+        size = int(p[-1][0]) * int(p[-1][1])
     if p[-4] == None:
         IDList = [p[-5]]
     else:
         IDList = list(get_IDs(p[-4]))
         IDList.insert(0, p[-5])
     for ID in IDList:
+        qtype = None
         if ID == None:
             continue
         if find(ID, 'dec') != False:
@@ -694,55 +721,51 @@ def p_neuralgic_dec(p):
             quit()
 
         if p[-2] == 'int':
-            type = (0, p[-2])
+            qtype = (0, p[-2])
             if env == 'global':
                 address = memory.gbli[0] + memory.gbli[1]
                 if address >= memory.gblf[0]:
                     print(f'Error! Too many global integer variables!')
                     quit()
-                memory.gbli[1] += 1
+                memory.gbli[1] =  memory.gbli[1] + arr_size if type(arr_size) == int else memory.gbli[1] + size
             else:
                 address = memory.lcli[0] + memory.lcli[1]
                 if address >= memory.lclf[0]:
                     print(f'Error! Too many local integer variables!')
                     quit()
-                memory.lcli[1] += 1
+                memory.lcli[1] =  memory.lcli[1] + arr_size if type(arr_size) == int else memory.lcli[1] + size
 
         elif p[-2] == 'float':
-            type = (1, p[-2])
+            qtype = (1, p[-2])
             if env == 'global':
                 address = memory.gblf[0] + memory.gblf[1]
                 if address >= memory.gbls[0]:
                     print(f'Error! Too many global float variables!')
                     quit()
-                memory.gblf[1] += 1
+                memory.gblf[1] =  memory.gblf[1] + arr_size if type(arr_size) == int else memory.gblf[1] + size
             else:
                 address = memory.lclf[0] + memory.lclf[1]
                 if address >= memory.lcls[0]:
                     print(f'Error! Too many local float variables!')
                     quit()
-                memory.lclf[1] += 1
+                memory.lclf[1] =  memory.lclf[1] + arr_size if type(arr_size) == int else memory.lclf[1] + size
 
         else:
-            type = (2, p[-2])
+            qtype = (2, p[-2])
             if env == 'global':
                 address = memory.gbls[0] + memory.gbls[1]
                 if address >= memory.lcli[0]:
                     print(f'Error! Too many global string variables!')
                     quit()
-                memory.gbls[1] += 1
+                memory.gbls[1] =  memory.gbls[1] + arr_size if type(arr_size) == int else memory.gbls[1] + size
             else:
                 address = memory.lcls[0] + memory.lcls[1]
                 if address >= memory.tmpi[0]:
                     print(f'Error! Too many local string variables!')
                     quit()
-                memory.lcls[1] += 1
+                memory.lcls[1] =  memory.lcls[1] + arr_size if type(arr_size) == int else memory.lcls[1] + size
 
-        if p[-1] == None:
-            arr_size = 1
-        else:
-            arr_size = int(p[-1])
-        new_var = var_object(ID, type, address, arr_size)
+        new_var = var_object(ID, qtype, address, arr_size)
         variables.append(new_var)
 
 def p_neuralgic_opr(p):
@@ -789,26 +812,26 @@ def p_neuralgic_params(p):
         return
     else:
         params = []
-        type = None
+        qtype = None
         IDList = [ID for ID in list(get_IDs(p[-1])) if ID != None]
         for i in range(1, len(IDList), 2):
             if IDList[i] == 'int':
-                type = 0
+                qtype = 0
                 address = memory.lcli[0] + memory.lcli[1]
                 memory.lcli[1] += 1
                 params.append(0)
             elif IDList[i] == 'float':
-                type = 1
+                qtype = 1
                 address = memory.lclf[0] + memory.lclf[1]
                 memory.lclf[1] += 1
                 params.append(1)
             else:
-                type = 2
+                qtype = 2
                 address = memory.lcls[0] + memory.lcls[1]
                 memory.lcls[1] += 1
                 params.append(2)
 
-            new_var = var_object(IDList[i-1], (type, IDList[i]), address, 1)
+            new_var = var_object(IDList[i-1], (qtype, IDList[i]), address, 1)
             variables.append(new_var)
         funDir.modules[-1].prototyping = params
 
@@ -839,11 +862,14 @@ def p_neuralgic_print(p):
     '''
     global quad_count
     if p[-2] == None:
-        quad_gen(('Print', None, None, r'\n'))
+        quad_gen(('LPrint', None, None, None))
     else:
         temp_quads = quadruple_list()
         IDList = list(get_IDs(p[-2]))
         for i in range(len(IDList)):
+            operation = 'Print'
+            if i == 0:
+                operation = 'LPrint'
             if IDList[i] == None:
                 continue
             res = res = find(IDList[i], 'cte')
@@ -855,7 +881,7 @@ def p_neuralgic_print(p):
 
             msg = quad_address()
             S.Types.pop()
-            new_quad = quadruple('Print', None, None, msg)
+            new_quad = quadruple(operation, None, None, msg)
             temp_quads.append(new_quad)
 
         temp_quads.quadruples = list(reversed(temp_quads.quadruples))
@@ -946,17 +972,17 @@ def p_add_call(p):
     for module in funDir.modules:
         if module.ID == p[-1][0]:
             fun = module
-    type = None
+    qtype = None
     if fun.type == 'int':
-        type = (0, fun.type)
+        qtype = (0, fun.type)
     elif fun.type == 'float':
-        type = (1, fun.type)
+        qtype = (1, fun.type)
     elif fun.type == 'string':
-        type = (2, fun.type)
+        qtype = (2, fun.type)
     else:
-        type = (-1, fun.type)
+        qtype = (-1, fun.type)
     S.Symbols.append(fun.ID)
-    S.Types.append(type)
+    S.Types.append(qtype)
 
 def p_neuralgic_if(p):
     '''
@@ -1042,7 +1068,7 @@ def p_for_id(p):
         print(f"Error! Variable '{p[-1]}' not found!")
         quit()
     if var.type[0] > 0:
-        print(f"Semantic error! Type mismatch! Expected int, got {var.type[1]}.")
+        print(f"Semantic error! Type mismatch: Expected int, got {var.type[1]}.")
         quit()
 
     S.Symbols.append(var.ID)
@@ -1054,7 +1080,7 @@ def p_for_expr(p):
     '''
     expr_type = S.Types.pop()
     if expr_type[0] > 0:
-        print(f"Semantic error! Type mismatch! Expected int, got {expr_type[1]}.")
+        print(f"Semantic error! Type mismatch: Expected int, got {expr_type[1]}.")
         quit()
     expr = quad_address()
     control = quad_address(S.Symbols[len(S.Symbols) - 1])
@@ -1062,7 +1088,7 @@ def p_for_expr(p):
 
     res = get_result((p[-2], control_type[0], expr_type[0]))
     if res is False:
-        print(f'Semantic error! Type mismatch! Got {type_izq[1]} and {type_der[1]}!')
+        print(f'Semantic error! Type mismatch: Got {type_izq[1]} and {type_der[1]}!')
         quit()
 
     quad_gen((p[-2], None, expr, control))
@@ -1073,15 +1099,15 @@ def p_neuralgic_for(p):
     '''
     expr_type = S.Types.pop()
     if expr_type[0] > 0:
-        print(f"Semantic error! Type mismatch! Expected int, got {expr_type[1]}.")
+        print(f"Semantic error! Type mismatch: Expected int, got {expr_type[1]}.")
         quit()
     expr = quad_address()
     control = quad_address(S.Symbols[len(S.Symbols) - 1])
     tn = temporary_handler(3, False)
     vcontrol = temporary_handler(0, False, 'vcontrol')
     vfinal = temporary_handler(0, False, 'vfinal')
-    quad_gen(('<-', control, None, vcontrol))
-    quad_gen(('<-', expr, None, vfinal))
+    quad_gen(('<-', None, expr, vfinal))
+    quad_gen(('<-', None, control, vcontrol))
     quad_gen(('<', vcontrol, vfinal, tn))
 
     S.Jumps.append(quad_count)
@@ -1093,12 +1119,13 @@ def p_for_end(p):
     for_end :
     '''
     tn = temporary_handler(0, False)
-    one = constant_handler([1], (0, 'int'), False)
+    constant_handler([1], (0, 'int'), False)
+    one = find(1, 'cte')
     control = quad_address(S.Symbols[len(S.Symbols) - 1])
     vcontrol = find('vcontrol', 'var')
     quad_gen(('+', vcontrol.v_address, one.v_address, tn))
-    quad_gen(('<-', tn, None, vcontrol.v_address))
-    quad_gen(('<-', tn, None, control))
+    quad_gen(('<-', None, tn, vcontrol.v_address))
+    quad_gen(('<-', None, tn, control))
 
     end = S.Jumps.pop()
     goback = S.Jumps.pop()

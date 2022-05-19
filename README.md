@@ -80,3 +80,30 @@ Hay dos maneras de procesar un archivo al momento de correr `alice`:
   user@linux:~/alice$ ./alice
   ```
   Al usar este método, el usuario entrará a una pequeña interfaz que le solicitará el nombre de un archivo que quiera parsear. Si se le inserta la frase `quit()` se terminará la ejecución del compilador, si se le provee el nombre de un archivo, lo intenterá compilar. Posteriormente, se le preguntará al ususario si desea compilar otro archivo, si el ususario inserta **n**, la ejecución de `alice` terminará, de lo contrario, se le volverá a solicitar al ususario el nombre de un archivo.
+
+## Avance 6:
+En `sem_cube.py` se corrigió un error que provocaba que el resultado de una división de enteros diera como resultado un número entero en vez de un número float. En `alice_yacc.py` se arreglaron algunos cuádruplos mal diseñados que se generaban al procesar un ciclo _for_, así como los estatutos `x++` o `x--`.\
+Se cambió el nombre del archivo JSON a `obj.json` para mejor reflejar su función. Para reflejar este cambio se ajustó también el nombre dentro del ejecutable `alice`, así como la máquina virtual.
+
+Se creó el archivo `virtual_memory.jl` el cual contiene las clases, estructuras de datos y funciones que le proveen memoria a la máquina virtual, almacenada ahora en el archivo `virtual_machine.jl`:
+  - **Clases**:
+    - **Persistent** es la memoria donde se almacenan las variables no temporales y las constantes. Como atributos tiene 3 arreglos de tipos _int64_, _float64_ y _string_.
+    - **Temporary** sirve para almacenar las variables temporales. Ésta clase cuenta con un arreglo tipo _bool_ en su tercer atributo.
+    - **Memory** es un tipo abstracto que es generalizado por Persistent y Temporary y sirve como abstracción sobre la que pueden operar las funciones de memoria.
+    - **GlobalMem** es una estructura que representa a la memoria global, y está conformada de 2 memorias persistentes: las variables globales y las constantes.
+    - **MemoryObj** representa la memoria local, y cuenta con una memoria persistente y una temporal.
+  - **Funciones**:
+    - **getMemory** retorna el atributo de memoria donde se buscará o almacenará un valor en base a un caractér que recibe como parámetro, así como el objeto de memoria donde buscará.
+    - **fetch** retorna el valor dentro de un arreglo de memoria en base a un objeto de memoria recibido, la dirección en formato _uint16_ y el caractér con el que llamará a getMemory.
+    - **store** se encarga de guardar valores basado en la misma información que recibe fetch, mas el valor que guardará, el cual es de tipo _any_. Si es necesario crear mas casillas para guardar el valor, las irá llenando con _nothing_ hasta poder meter el valor, de lo contrario, lo meterá en la casilla que se le solicitó con la address.
+  - **Auxiliares**
+    - **ranges** es un arreglo que cuenta con rangos numéricos que representa los rangos de memoria, lo cual ayuda a poder saber que tipo de memoria llamar al momento de hacer un fetch o store.
+    - **operators** es un arreglo que contiene en formato _string_ todos los operadores que soporta el lenguaje Alice.
+
+La máquina virtual en `virtual_machine.jl` actualmente puede soportar operaciones aritméticas, operaciones lógicas, prints, inputs del usuario, estatutos condicionales y ciclos. Así mismo, maneja errores semánticos como división entre 0 y generación de números imaginarios.
+
+### ToDo:
+  1. Agregar soporte en la máquina virtual de funciones.
+  2. Agregar soporte de arreglos.
+  3. Agregar soporte de funciones estadísticas.
+  4. (Opcional) añadir más funciones estadísticas, si hay tiempo.
