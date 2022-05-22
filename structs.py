@@ -5,7 +5,7 @@ def export(Q, C, D):
 
     temp = []
     for module in D.modules:
-        mdl = [module.ID, module.type, module.beginning, module.size]
+        mdl = [module.ID, module.prototyping, module.size]
         temp.append(mdl)
     export_dict['modules'] = temp
 
@@ -20,9 +20,6 @@ def export(Q, C, D):
         quad = [quadruple.operation, quadruple.operand1, quadruple.operand2, quadruple.storage]
         temp.append(quad)
     export_dict['code'] = temp
-
-    temp = [1000, 3000, 5000, 6000, 8000, 10000, 11000, 16000, 21000, 26000, 27500, 29000]
-    export_dict['base memory'] = temp
 
     with open('obj.json', 'w', encoding='utf-8') as file:
         json.dump(export_dict, file, ensure_ascii=False, indent=2)

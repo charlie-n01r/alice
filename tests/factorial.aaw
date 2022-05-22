@@ -1,0 +1,14 @@
+begin facto:
+  module factorial::int(n::int):
+    if n == 1 then:
+      return n;
+    end
+      return n * factorial(n-1);
+  end
+
+  main:
+    let x::int;
+    input("Insert a number:", x);
+    print("The factorial of", x, "is", factorial(x));
+  end
+endprog

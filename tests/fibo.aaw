@@ -1,0 +1,19 @@
+begin fibo:
+  module fibonacci::int(n::int):
+    if n == 0 then:
+      return 0;
+    else:
+      if n == 1 or n == 2 then:
+        return 1;
+      else:
+        return fibonacci(n-1) + fibonacci(n-2);
+      end
+    end
+  end
+
+  main:
+    let x::int;
+    input("Insert a number:", x);
+    print("The", x, "fibonacci number is", fibonacci(x));
+  end
+endprog

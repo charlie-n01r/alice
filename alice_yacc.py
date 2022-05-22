@@ -9,6 +9,8 @@ from structs import *
 tmpvar_n = -1
 quad_count = -1
 fun = False
+recursive_calls = []
+recursive_info = []
 
 S = stacks()
 funDir = mdl_dir()
@@ -185,13 +187,82 @@ def unary_handler(p, operator):
                 quit()
 
         der_address = quad_address()
-        if operator == '-':
+        if operator == '-' or der_address >= 26000:
             tn = temporary_handler(res)
             quad_gen((operator, None, der_address, tn))
         else:
             S.Symbols.append(p[-3])
             S.Types.append(type_der)
             quad_gen((operator, None, der_address, der_address))
+
+def call_solver(ARE, IDList, aux, modify=False):
+    addresses = [[], []]
+    ARE[2] = addresses[0]
+    ARE[3] = addresses[1]
+    params = []
+    if fun.size != None:
+        locals = fun.size[0].copy()
+    else:
+        recursive_info.append([IDList, aux.copy()])
+    for i in range(len(IDList)):
+        prototype = fun.prototyping[i][0]
+        param = aux.pop()
+        if prototype != param[1][0]:
+            print(f"Error! Type mismatch in function call to '{fun.ID}' with parameter {i+1}!")
+            quit()
+
+        var = find(param[0], 'cte')
+        if not var:
+            var = find(param[0], 'var')
+        if fun.size != None and var.v_address >= 6000 and var.v_address < 11000:
+            locals[prototype] -= 1
+            addresses[0].append(var.v_address)
+        if not modify:
+            params.append(('Parameter', None, var.v_address, i+1))
+
+    if fun.size != None:
+        for i in range(len(locals)):
+            if locals[i] == 0:
+                continue
+            for j in range(locals[i]):
+                if i == 0:
+                    address = memory.lcli[0] + memory.lcli[1]
+                    if address >= memory.lclf[0]:
+                        print(f'Error! Too many local integer variables!')
+                        quit()
+                    memory.lcli[1] +=  1
+                elif i == 1:
+                    address = memory.lclf[0] + memory.lclf[1]
+                    if address >= memory.lcls[0]:
+                        print(f'Error! Too many local float variables!')
+                        quit()
+                    memory.lclf[1] += 1
+                else:
+                    address = memory.lcls[0] + memory.lcls[1]
+                    if address >= memory.tmpi[0]:
+                        print(f'Error! Too many local string variables!')
+                        quit()
+                    memory.lcls[1] +=  1
+                addresses[0].append(address)
+        temps = fun.size[1]
+        for i in range(len(temps)):
+            if temps[i] == 0:
+                continue
+            for j in range(temps[i]):
+                address = temporary_handler(i, False)
+                addresses[1].append(address)
+        if not modify:
+            quad_gen(ARE)
+    else:
+        quad_gen(('ARE', fun.ID, None, None))
+        recursive_calls.append(quad_count)
+
+    if not modify:
+        for quad in params:
+            quad_gen(quad)
+        quad_gen(('GoSub', None, None, fun.beginning))
+    else:
+        return ARE
 
 def get_IDs(IDList):
      for item in IDList:
@@ -621,7 +692,6 @@ def p_lclenv_end(p):
     '''
     lclenv_end :
     '''
-    memory.clear()
     global env
     global tmpvar_n
     tmpvar_n = -1
@@ -653,6 +723,19 @@ def p_lclenv_end(p):
 
     funDir.modules[-1].variables = temp
     funDir.modules[-1].size = size
+    if not recursive_calls:
+        pass
+    else:
+        for i in range(len(recursive_calls)):
+            call = recursive_calls[i]
+            info = recursive_info[i]
+            curr = quadruples.quadruples[call]
+            ARE = [curr.operation, curr.operand1, curr.operand2, curr.storage]
+            ARE = call_solver(ARE, *info, modify=True)
+            curr.operand2 = ARE[2]
+            curr.storage = ARE[3]
+
+    memory.clear()
     variables.var_list = aux
     quad_gen(('EndModule', None, None, None))
 
@@ -701,12 +784,12 @@ def p_neuralgic_dec(p):
     neuralgic_dec :
     '''
     if p[-1] == None:
-        arr_size = 1
+        arr_size = [[0, 1], 1]
     elif p[-1][1] == None:
-        arr_size = int(p[-1][0])
+        arr_size = [[0, int(p[-1][0])], int(p[-1][0])]
     else:
-        arr_size = p[-1]
-        size = int(p[-1][0]) * int(p[-1][1])
+        tsize = int(p[-1][0]) * int(p[-1][1])
+        arr_size = [[[0, int(p[-1][0])], tsize], [[0, int(p[-1][1])], int(p[-1][1])]]
     if p[-4] == None:
         IDList = [p[-5]]
     else:
@@ -727,13 +810,13 @@ def p_neuralgic_dec(p):
                 if address >= memory.gblf[0]:
                     print(f'Error! Too many global integer variables!')
                     quit()
-                memory.gbli[1] =  memory.gbli[1] + arr_size if type(arr_size) == int else memory.gbli[1] + size
+                memory.gbli[1] =  memory.gbli[1] + arr_size[1] if type(arr_size[1]) == int else memory.gbli[1] + tsize
             else:
                 address = memory.lcli[0] + memory.lcli[1]
                 if address >= memory.lclf[0]:
                     print(f'Error! Too many local integer variables!')
                     quit()
-                memory.lcli[1] =  memory.lcli[1] + arr_size if type(arr_size) == int else memory.lcli[1] + size
+                memory.lcli[1] =  memory.lcli[1] + arr_size[1] if type(arr_size[1]) == int else memory.lcli[1] + tsize
 
         elif p[-2] == 'float':
             qtype = (1, p[-2])
@@ -742,13 +825,13 @@ def p_neuralgic_dec(p):
                 if address >= memory.gbls[0]:
                     print(f'Error! Too many global float variables!')
                     quit()
-                memory.gblf[1] =  memory.gblf[1] + arr_size if type(arr_size) == int else memory.gblf[1] + size
+                memory.gblf[1] =  memory.gblf[1] + arr_size[1] if type(arr_size[1]) == int else memory.gblf[1] + tsize
             else:
                 address = memory.lclf[0] + memory.lclf[1]
                 if address >= memory.lcls[0]:
                     print(f'Error! Too many local float variables!')
                     quit()
-                memory.lclf[1] =  memory.lclf[1] + arr_size if type(arr_size) == int else memory.lclf[1] + size
+                memory.lclf[1] =  memory.lclf[1] + arr_size[1] if type(arr_size[1]) == int else memory.lclf[1] + tsize
 
         else:
             qtype = (2, p[-2])
@@ -757,13 +840,13 @@ def p_neuralgic_dec(p):
                 if address >= memory.lcli[0]:
                     print(f'Error! Too many global string variables!')
                     quit()
-                memory.gbls[1] =  memory.gbls[1] + arr_size if type(arr_size) == int else memory.gbls[1] + size
+                memory.gbls[1] =  memory.gbls[1] + arr_size[1] if type(arr_size[1]) == int else memory.gbls[1] + tsize
             else:
                 address = memory.lcls[0] + memory.lcls[1]
                 if address >= memory.tmpi[0]:
                     print(f'Error! Too many local string variables!')
                     quit()
-                memory.lcls[1] =  memory.lcls[1] + arr_size if type(arr_size) == int else memory.lcls[1] + size
+                memory.lcls[1] =  memory.lcls[1] + arr_size[1] if type(arr_size[1]) == int else memory.lcls[1] + tsize
 
         new_var = var_object(ID, qtype, address, arr_size)
         variables.append(new_var)
@@ -819,17 +902,17 @@ def p_neuralgic_params(p):
                 qtype = 0
                 address = memory.lcli[0] + memory.lcli[1]
                 memory.lcli[1] += 1
-                params.append(0)
+                params.append((0, address))
             elif IDList[i] == 'float':
                 qtype = 1
                 address = memory.lclf[0] + memory.lclf[1]
                 memory.lclf[1] += 1
-                params.append(1)
+                params.append((1, address))
             else:
                 qtype = 2
                 address = memory.lcls[0] + memory.lcls[1]
                 memory.lcls[1] += 1
-                params.append(2)
+                params.append((2, address))
 
             new_var = var_object(IDList[i-1], (qtype, IDList[i]), address, 1)
             variables.append(new_var)
@@ -870,7 +953,7 @@ def p_neuralgic_print(p):
             operation = 'Print'
             if i == 0:
                 operation = 'LPrint'
-            if IDList[i] == None:
+            if IDList[i] == None or IDList[i] == '(':
                 continue
             res = res = find(IDList[i], 'cte')
             if not res:
@@ -895,7 +978,7 @@ def p_neuralgic_input(p):
     '''
     res = find(p[-4], 'cte')
     if not res:
-        res= find(p[-4], 'var')
+        res = find(p[-4], 'var')
         if not res:
             print(f"Error! Variable '{p[-4]}' doesn't exist!")
             quit()
@@ -925,8 +1008,6 @@ def p_verify_ID(p):
         print(f"Error! Module '{p[-1]}' does not exist!")
         quit()
 
-    quad_gen(('ARE', fun.size[0], fun.size[1], None))
-
 def p_neuralgic_call(p):
     '''
     neuralgic_call :
@@ -950,19 +1031,8 @@ def p_neuralgic_call(p):
         quit()
 
     aux = [(S.Symbols.pop(), S.Types.pop()) for i in range(len(IDList))]
-    for i in range(len(IDList)):
-        prototype = fun.prototyping[i]
-        param = aux.pop()
-        if prototype != param[1][0]:
-            print(f"Error! Type mismatch in function call to '{fun.ID}' with parameter {i+1}!")
-            quit()
-
-        var = find(param[0], 'cte')
-        if not var:
-            var = find(param[0], 'var')
-        quad_gen(('Parameter', None, var.v_address, i+1))
-    quad_gen(('GoSub', None, None, fun.beginning))
-    fun = False
+    ARE = ['ARE', fun.ID, None, None]
+    call_solver(ARE, IDList, aux)
 
 def p_add_call(p):
     '''
@@ -1160,7 +1230,7 @@ def p_neuralgic_return(p):
 
     result_type = S.Types.pop()
     if env != result_type[1]:
-        print(f"Error! Return type mismatch! Expected {env}, got {result_type[1]}")
+        print(f"Error! Return type mismatch! Expected {env}, got {result_type[1]}.")
         quit()
 
     result = quad_address()
@@ -1176,9 +1246,9 @@ def p_empty(p):
 
 def p_error(t):
     if t is not None:
-        print("Line %s, illegal token: %s" % (t.lineno, t.value))
+        print(f"Line {t.lineno}, illegal token: {t.value}.")
     else:
-        print('Unexpected end of input')
+        print('Unexpected end of input.')
     quit()
 
 parser = yacc.yacc()
@@ -1187,7 +1257,7 @@ try:
     test_file = open(argv[1])
     source_code = test_file.read()
     test_file.close()
+    parser.parse(source_code)
 except FileNotFoundError:
     print(f'Error! File {argv[1]} not found!')
     quit()
-parser.parse(source_code)

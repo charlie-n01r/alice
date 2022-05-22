@@ -107,3 +107,18 @@ La máquina virtual en `virtual_machine.jl` actualmente puede soportar operacion
   2. Agregar soporte de arreglos.
   3. Agregar soporte de funciones estadísticas.
   4. (Opcional) añadir más funciones estadísticas, si hay tiempo.
+
+## Avance 6.5:
+En `alice_yacc.py` se realizaron ajustes al código para poder generar funciones recursivas, generando cuádruplos completos que se pasarán a la máquina virtual.
+
+En `structs.py` se removieron los rangos de memoria base que se enviaban en el `obj.json` para la máquina virtual debido a que ésta ya cuenta con los rangos dentro del archivo `virtual_memory.jl`.
+
+En `virtual_machine.jl` se agregó soporte completo para las funciones, generando nueva memoria al momento de recibir una llamada, y separando el tamaño del espacio que ocupará de acuerdo con el cuádruplo _ARE_. Se han probado exitosamente casos con llamadas a funciones externas, incluyendo un archivo que recursivamente retorna el factorial de un número.
+
+### ToDo:
+  1. Agregar soporte de arreglos.
+  2. Agregar soporte de funciones estadísticas.
+  3. (Opcional) añadir más funciones estadísticas, si hay tiempo.
+
+### _Bugs_ conocidos:
+  1. Al intentar generar el "n" número fibonacci utilizando una función recursiva el programa retorna un resultado incorrecto. Los cuádruplos generados no son el problema, por lo que lo más seguro es que el error se encuentre dentro de la máquina virtual.

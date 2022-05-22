@@ -32,10 +32,7 @@ end
 
 function fetch(mem::Memory, address::UInt16, type::Char)
     memory = getMemory(mem, type)
-    if length(memory) == false || length(memory) < address
-        println("Error! Variable wasn't assigned any value!")
-        exit()
-    end
+    length(memory) === false || length(memory) < address && return false
     memory[address]
 end
 

@@ -1,18 +1,19 @@
 include("virtual_memory.jl")
 using JSON, Printf
 
-value = nothing
 IP = 1
+Fun = []
 Global = GlobalMem(Persistent([], [], []), Persistent([], [], []))
-Curr = MemoryObj(Persistent([], [], []), Temporary([], [], []))
-MemoryStack = [Curr]
+CurrMem = MemoryObj(Persistent([], [], []), Temporary([], [], []))
+MemoryStack = [CurrMem]
+PointerStack = [IP]
 
 function extract()
     try
         file = open("obj.json", "r")
         input = JSON.parse(read(file, String))
         close(file)
-        input["constants"], input["modules"], input["code"], input["base memory"]
+        input["constants"], input["modules"], input["code"]
     catch LoadError
         exit()
     end
@@ -100,9 +101,11 @@ function operations(data::Vector{Any}, operation::String)
     operation == "<=" && store_or_fetch(data[4], true, left <= right)
     operation == "==" && store_or_fetch(data[4], true, left == right)
     operation == "¬=" && store_or_fetch(data[4], true, left != right)
+    operation == "and" && store_or_fetch(data[4], true, left && right)
+    operation == "or" && store_or_fetch(data[4], true, left || right)
     # Assignment
     operation == "<-" && store_or_fetch(data[4], true, right)
-    global IP += 1
+    global PointerStack[end] += 1
 end
 
 function printquad(msg_address::Union{Int64, Nothing}, last::Bool, jump::Bool=true)
@@ -116,36 +119,39 @@ function printquad(msg_address::Union{Int64, Nothing}, last::Bool, jump::Bool=tr
     end
     last || print(message, ' ')
     last && println(message)
-    jump && global IP += 1
+    jump && global PointerStack[end] += 1
 end
 
-function gotoEval(data::Vector{Any}, type::Bool)
+function go_to_eval(data::Vector{Any}, type::Bool)
     result = store_or_fetch(data[2], false)
     if (result && type) || (!result && !type)
-        global IP = data[4] + 1
+        global PointerStack[end] = data[4] + 1
     else
-        global IP += 1
+        global PointerStack[end] += 1
     end
 end
 
 # Main
-constants, modules, instructions, bmem = extract()
+constants, modules, instructions = extract()
 for constant ∈ constants
     constant[2] ∈ ranges[end-2] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end-2][1]+1), '1')
     constant[2] ∈ ranges[end-1] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end-1][1]+1), '2')
     constant[2] ∈ ranges[end] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end][1]+1), '3')
 end
+constants = nothing
 
 while true
-    current = instructions[IP]
+    current = instructions[PointerStack[end]]
+    #println(current)
+    # End runtime
     if current[1] == "EndProgram" break
 
-    elseif current[1] == "Goto"
-        global IP = current[4] + 1
-        continue
+    # Basic operations
     elseif current[1] ∈ operators
         operations(current, current[1])
         continue
+
+    # I/O
     elseif current[1] == "Print"
         printquad(current[4], false)
         continue
@@ -156,51 +162,84 @@ while true
         printquad(current[3], false, false)
         address = current[4]
         expected = nothing
-        global value = readline()
+        input = readline()
         try
             if address ∈ ranges[1] || address ∈ ranges[4] || address ∈ ranges[7] || address ∈ ranges[10]
                 expected = "int"
-                global value = parse(Int64, value)
+                input = parse(Int64, input)
             elseif address ∈ ranges[2] || address ∈ ranges[5] || address ∈ ranges[8] || address ∈ ranges[11]
                 expected = "float"
-                global value = parse(Float64, value)
+                input = parse(Float64, input)
             end
         catch
             @printf("Error! Type mismatch on input, expected %s.\n", expected)
             exit()
         end
-        store_or_fetch(address, true, value)
-        IP += 1
+        store_or_fetch(address, true, input)
+        global PointerStack[end] += 1
+        continue
+
+    # Jumps
+    elseif current[1] == "Goto"
+        global PointerStack[end] = current[4] + 1
         continue
     elseif current[1] == "GotoF"
-        gotoEval(current, false)
+        go_to_eval(current, false)
         continue
     elseif current[1] == "GotoT"
-        gotoEval(current, true)
+        go_to_eval(current, true)
+        continue
+
+    # Modules
+    elseif current[1] == "ARE"
+        for fun ∈ modules
+            fun[1] != current[2] && continue
+            push!(Fun, fun)
+        end
+        for address ∈ current[3]
+            try
+                if store_or_fetch(address, false) !== false
+                    continue
+                end
+            catch
+                store_or_fetch(address, true, nothing)
+            end
+            store_or_fetch(address, true, nothing)
+        end
+        for address ∈ current[4]
+            store_or_fetch(address, true, nothing)
+        end
+        global PointerStack[end] += 1
+        continue
+    elseif current[1] == "Parameter"
+        push!(Fun, store_or_fetch(current[3], false))
+        global PointerStack[end] += 1
+        continue
+    elseif current[1] == "GoSub"
+        params = Fun[1][2]
+        global Fun = Fun[2:end]
+        NewMem = MemoryObj(Persistent([], [], []), Temporary([], [], []))
+        push!(MemoryStack, NewMem)
+        for i = 1:length(params)
+            store_or_fetch(params[i][2], true, Fun[i])
+        end
+        global Fun = []
+        global PointerStack[end] += 1
+        push!(PointerStack, current[4] + 1)
+        continue
+    elseif current[1] == "Return"
+        operations(current, "<-")
+        pop!(MemoryStack)
+        pop!(PointerStack)
+        continue
+    elseif current[1] == "EndModule"
+        pop!(MemoryStack)
+        pop!(PointerStack)
         continue
     else
         println(current)
-        global IP += 1
+        global PointerStack[end] += 1
         continue
     end
     break
 end
-
-
-#=
-    1000
-    3000
-    5000
-    ----
-    6000
-    8000
-    10000
-    -----
-    11000
-    16000
-    21000
-    -----
-    26000
-    27500
-    29000
-=#
