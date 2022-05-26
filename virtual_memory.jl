@@ -11,6 +11,7 @@ struct Temporary <: Memory
     type1::Vector{Union{Int64, Nothing}}
     type2::Vector{Union{Float64, Nothing}}
     type3::Vector{Union{Bool, Nothing}}
+    type4::Vector{Union{UInt16, Nothing}}
 end
 
 struct GlobalMem
@@ -27,7 +28,8 @@ end
 function getMemory(mem::Memory, type::Char)
     type === '1' && return mem.type1
     type === '2' && return mem.type2
-    mem.type3
+    type === '3' && return mem.type3
+    mem.type4
 end
 
 function fetch(mem::Memory, address::UInt16, type::Char)
@@ -62,8 +64,9 @@ ranges = [1000:2999,
           11000:15999,
           16000:20999,
           21000:25999,
-          26000:27499,
-          27500:28999,
-          29000:29999]
+          26000:27999,
+          28000:29999,
+          30000:30999,
+          31000:31999]
 
 operators = ["++", "--", "^", "*", "/", "+", "-", "<", "<=", ">", ">=", "==", "¬=", "and", "or", "<-"]

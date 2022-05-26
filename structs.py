@@ -104,6 +104,7 @@ class stacks:
         self.Symbols = []
         self.Types = []
         self.Jumps = []
+        self.Dimensions = []
 
 class memory:
     def __init__(self):
@@ -120,8 +121,10 @@ class memory:
         self.tmpb = [21000, 0]
 
         self.ctei = [26000, 0]
-        self.ctef = [27500, 0]
-        self.ctes = [29000, 0]
+        self.ctef = [28000, 0]
+        self.ctes = [30000, 0]
+
+        self.ptrs = [31000, 0]
 
     def clear(self):
         self.lcli[1] = 0
@@ -131,3 +134,5 @@ class memory:
         self.tmpi[1] = 0
         self.tmpf[1] = 0
         self.tmpb[1] = 0
+
+        self.ptrs[1] = 0

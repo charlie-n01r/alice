@@ -4,7 +4,7 @@ using JSON, Printf
 IP = 1
 Fun = []
 Global = GlobalMem(Persistent([], [], []), Persistent([], [], []))
-CurrMem = MemoryObj(Persistent([], [], []), Temporary([], [], []))
+CurrMem = MemoryObj(Persistent([], [], []), Temporary([], [], [], []))
 MemoryStack = [CurrMem]
 PointerStack = [IP]
 
@@ -53,9 +53,12 @@ function store_or_fetch(address::Int64, do_store::Bool, value::Any=false)
     elseif address ∈ ranges[11]
         do_store && return store(Global.constants, value, convert(UInt16, address - ranges[11][1] + 1), '2')
         return fetch(Global.constants, convert(UInt16, address - ranges[11][1] + 1), '2')
-    else
+    elseif address ∈ ranges[12]
         do_store && return store(Global.constants, value, convert(UInt16, address - ranges[12][1] + 1), '3')
         fetch(Global.constants, convert(UInt16, address - ranges[12][1] + 1), '3')
+    else
+        do_store && return store(MemoryStack[end].temporary, value, convert(UInt16, address - ranges[13][1] + 1), '4')
+        return fetch(MemoryStack[end].temporary, convert(UInt16, address - ranges[13][1] + 1), '4')
     end
 end
 
@@ -66,6 +69,8 @@ function conversion(address::Int64, value::String)
         return parse(Float64, value)
     elseif address ∈ ranges[9]
         return parse(Bool, value)
+    elseif address ∈ ranges[end]
+        return parse(UInt16, value)
     else
         return value
     end
@@ -114,7 +119,7 @@ function printquad(msg_address::Union{Int64, Nothing}, last::Bool, jump::Bool=tr
     else
         message = store_or_fetch(msg_address, false)
     end
-    if msg_address ∈ ranges[3] || msg_address ∈ ranges[6] || msg_address ∈ ranges[end]
+    if msg_address ∈ ranges[3] || msg_address ∈ ranges[6] || msg_address ∈ ranges[end-1]
         message = message[2:end-1]
     end
     last || print(message, ' ')
@@ -134,9 +139,9 @@ end
 # Main
 constants, modules, instructions = extract()
 for constant ∈ constants
-    constant[2] ∈ ranges[end-2] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end-2][1]+1), '1')
-    constant[2] ∈ ranges[end-1] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end-1][1]+1), '2')
-    constant[2] ∈ ranges[end] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end][1]+1), '3')
+    constant[2] ∈ ranges[end-3] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end-3][1]+1), '1')
+    constant[2] ∈ ranges[end-2] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end-2][1]+1), '2')
+    constant[2] ∈ ranges[end-1] && store(Global.constants, constant[1], convert(UInt16, constant[2] - ranges[end-1][1]+1), '3')
 end
 constants = nothing
 
@@ -218,7 +223,7 @@ while true
     elseif current[1] == "GoSub"
         params = Fun[1][2]
         global Fun = Fun[2:end]
-        NewMem = MemoryObj(Persistent([], [], []), Temporary([], [], []))
+        NewMem = MemoryObj(Persistent([], [], []), Temporary([], [], [], []))
         push!(MemoryStack, NewMem)
         for i = 1:length(params)
             store_or_fetch(params[i][2], true, Fun[i])

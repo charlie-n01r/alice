@@ -122,3 +122,17 @@ En `virtual_machine.jl` se agregó soporte completo para las funciones, generand
 
 ### _Bugs_ conocidos:
   1. Al intentar generar el "n" número fibonacci utilizando una función recursiva el programa retorna un resultado incorrecto. Los cuádruplos generados no son el problema, por lo que lo más seguro es que el error se encuentre dentro de la máquina virtual.
+
+## Avance 7:
+En `structs.py` se generó un nuevo rango de memoria de tipo _pointer_, el cual se usará para accesar la memoria al momento de realizar una indexación adentro de un arreglo. Así mismo, se incluyó una tabla de dimensiones para llevar el control de la dimensión actual y en qué variable se está indexando actualmente.
+
+En `alice_yacc.py` se generaron los puntos neurálgicos para los arreglos unidimensionales, así como la evaluación semántica al momento de la creación e indexación en dichos arreglos, cuidando que no generen un arreglo con un número menor a 1 y que los índices sean de tipo entero.
+
+Se arregló también el bug que provocaba que varias llamadas a función sobreescribieran el valor de la llamada anterior, como se observaba durante la secuencia fibonacci, creando una asignación a una variable temporal del resultado de una llamada a una función con valor de retorno.
+
+En la máquina virtual se hicieron los cambios para soportar el nuevo tipo de dato pointer, mas aún no sea ha generado la lógica para respaldar el funcionamiento completo de los arrelos.
+
+### ToDo:
+  1. Agregar soporte de arreglos en máquina virtual.
+  2. Agregar soporte de matrices.
+  3. Agregar soporte de funciones estadísticas.

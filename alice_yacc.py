@@ -9,8 +9,8 @@ from structs import *
 tmpvar_n = -1
 quad_count = -1
 fun = False
+dims = False
 recursive_calls = []
-recursive_info = []
 
 S = stacks()
 funDir = mdl_dir()
@@ -85,25 +85,35 @@ def temporary_handler(type, append=True, name=False):
             quit()
         memory.tmpf[1] += 1
         typetxt = 'float'
-    else:
+    elif type == 3:
         address = memory.tmpb[0] + memory.tmpb[1]
         if address >= memory.ctei[0]:
             print(f'Error! Too many temporal boolean variables!')
             quit()
         memory.tmpb[1] += 1
         typetxt = 'bool'
+    else:
+        address = memory.ptrs[0] + memory.ptrs[1]
+        if address >= 32000:
+            print(f'Error! Too many pointers!')
+            quit()
+        memory.ptrs[1] += 1
+        typetxt = 'pointer'
 
     if not name:
         global tmpvar_n
         tmpvar_n += 1
-        tn = 't' + str(tmpvar_n)
+        if type == 4:
+            tn = 'ptr' + str(tmpvar_n)
+        else:
+            tn = 't' + str(tmpvar_n)
     else:
         tn = name
     if append:
         S.Types.append((type, typetxt))
         S.Symbols.append(tn)
 
-    new_var = var_object(tn, (type, typetxt), address, 1)
+    new_var = var_object(tn, (type, typetxt), address, [[0, 0], 1])
     variables.append(new_var)
     return address
 
@@ -128,7 +138,7 @@ def constant_handler(p, cte, append=True):
             memory.ctef[1] += 1
         else:
             address = memory.ctes[0] + memory.ctes[1]
-            if address >= 30000:
+            if address >= memory.ptrs[0]:
                 print(f'Error! Too many string literals!')
                 quit()
             memory.ctes[1] += 1
@@ -187,13 +197,29 @@ def unary_handler(p, operator):
                 quit()
 
         der_address = quad_address()
-        if operator == '-' or der_address >= 26000:
+        if operator == '-' or (der_address >= 26000 and der_address < 31000):
             tn = temporary_handler(res)
             quad_gen((operator, None, der_address, tn))
         else:
             S.Symbols.append(p[-3])
             S.Types.append(type_der)
             quad_gen((operator, None, der_address, der_address))
+
+# NEWWW
+def dimension_tracker(dim):
+    address = quad_address(S.Symbols[-1])
+    curr = dims.arr_size if type(dims.arr_size[1]) != list else dims.arr_size[0]
+    quad_gen(('Verify', address, curr[0][0], curr[0][1]))
+
+    if type(dims.arr_size[1]) == list:
+        aux = [S.Symbols.pop(), S.Types.pop()]
+        temp = temporary_handler(0)
+        quad_gen(('<*>', address, curr[1], temp))
+    if dim > 1:
+        aux2 = [quad_address(S.Symbols.pop()), S.Types.pop()]
+        aux1 = [quad_address(S.Symbols.pop()), S.Types.pop()]
+        temp = temporary_handler(0)
+        quad_gen(('+', aux1[0], aux2[0], temp))
 
 def call_solver(ARE, IDList, aux, modify=False):
     addresses = [[], []]
@@ -203,7 +229,7 @@ def call_solver(ARE, IDList, aux, modify=False):
     if fun.size != None:
         locals = fun.size[0].copy()
     else:
-        recursive_info.append([IDList, aux.copy()])
+        temp = [IDList, aux.copy()]
     for i in range(len(IDList)):
         prototype = fun.prototyping[i][0]
         param = aux.pop()
@@ -255,7 +281,7 @@ def call_solver(ARE, IDList, aux, modify=False):
             quad_gen(ARE)
     else:
         quad_gen(('ARE', fun.ID, None, None))
-        recursive_calls.append(quad_count)
+        recursive_calls.append([quad_count, temp])
 
     if not modify:
         for quad in params:
@@ -541,7 +567,7 @@ def p_factor(p):
     '''
     factor : LPAREN neuralgic_opr expr RPAREN neuralgic_paren
            | value
-           | variable neuralgic_var
+           | variable
            | systemdef neuralgic_stats
            | call add_call
     '''
@@ -558,14 +584,17 @@ def p_value(p):
     '''
     p[0] = p[1]
 
+# NEWWW
 def p_variable(p):
     '''
-    variable : ID
-             | ID L_SBRKT expr R_SBRKT
-             | ID L_SBRKT expr COMA expr R_SBRKT
+    variable : ID neuralgic_var
+             | ID neuralgic_var L_SBRKT neuralgic_array expr evaluate_dimension R_SBRKT end_dimensions
+             | ID neuralgic_var L_SBRKT neuralgic_array expr evaluate_dimension COMA expr R_SBRKT end_dimensions
     '''
-    if len(p) > 3:
-        p[0] = p[1], p[3], p[4]
+    if len(p) == 9:
+        p[0] = p[1], p[5], p[7]
+    elif len(p) == 11:
+        p[0] = p[1], p[5], p[8], p[9]
     else:
         p[0] = p[1]
 
@@ -680,7 +709,7 @@ def p_lclenv_setup(p):
                         print(f'Error! Too many global string variables!')
                         quit()
                     memory.gbls[1] += 1
-                new_var = var_object(p[-3], type, address, 1)
+                new_var = var_object(p[-3], type, address, [[0, 0], 1])
                 variables.append(new_var)
             program = mdl_object(p[-3], env, quad_count + 1, None, None, None)
             funDir.append(program)
@@ -727,8 +756,8 @@ def p_lclenv_end(p):
         pass
     else:
         for i in range(len(recursive_calls)):
-            call = recursive_calls[i]
-            info = recursive_info[i]
+            call = recursive_calls[i][0]
+            info = recursive_calls[i][1]
             curr = quadruples.quadruples[call]
             ARE = [curr.operation, curr.operand1, curr.operand2, curr.storage]
             ARE = call_solver(ARE, *info, modify=True)
@@ -763,33 +792,36 @@ def p_neuralgic_assign(p):
     '''
     neuralgic_assign :
     '''
-    var = find(p[-3], 'var')
-    if not var:
-        print(f"Error! Variable '{p[-3]}' doesn't exist!")
+    der_address = quad_address()
+    izq_address = quad_address()
+    type_der = S.Types.pop()
+    type_izq = S.Types.pop()
+    res = get_result((p[-2], type_izq[0], type_der[0]))
+    if res is False:
+        print(f'Semantic error! Type mismatch: Got {type_izq[1]} and {type_der[1]}!')
         quit()
-    else:
-        type_izq = var.type
-        type_der = S.Types.pop()
-
-        res = get_result((p[-2], type_izq[0], type_der[0]))
-        if res is False:
-            print(f'Semantic error! Type mismatch: Got {type_izq[1]} and {type_der[1]}!')
-            quit()
-
-        der_address = quad_address()
-        quad_gen((p[-2], None, der_address, var.v_address))
+    quad_gen((p[-2], None, der_address, izq_address))
 
 def p_neuralgic_dec(p):
     '''
     neuralgic_dec :
     '''
     if p[-1] == None:
-        arr_size = [[0, 1], 1]
+        arr_size = [[0, 0], 1]
     elif p[-1][1] == None:
-        arr_size = [[0, int(p[-1][0])], int(p[-1][0])]
+        dim1 = int(p[-1][0])
+        if dim1 <= 1:
+            print(f"Error! Array's size isn't valid!")
+            quit()
+        arr_size = [[0, dim1 - 1], 1]
     else:
-        tsize = int(p[-1][0]) * int(p[-1][1])
-        arr_size = [[[0, int(p[-1][0])], tsize], [[0, int(p[-1][1])], int(p[-1][1])]]
+        dim1 = int(p[-1][0])
+        dim2 = int(p[-1][1])
+        if dim1 <= 1 or dim2 <= 1:
+            print(f"Error! Matrix's {'1st' if dim1 <= 0 else '2nd'} dimension's value isn't valid!")
+            quit()
+        tsize = dim1 * dim2
+        arr_size = [[[0, dim1 - 1], dim2], [[0, dim2 - 1], 1]]
     if p[-4] == None:
         IDList = [p[-5]]
     else:
@@ -875,6 +907,7 @@ def p_neuralgic_str(p):
     '''
     constant_handler(p, (2, 'string'))
 
+# NEWWW
 def p_neuralgic_var(p):
     '''
     neuralgic_var :
@@ -883,9 +916,44 @@ def p_neuralgic_var(p):
     if not var:
         print(f"Error! Variable '{p[-1]}' doesn't exist!")
         quit()
-
     S.Symbols.append(p[-1])
     S.Types.append(var.type)
+    if type(var.arr_size[1]) == list or var.arr_size[0][1] > 0:
+        global dims
+        dims = var
+
+def p_neuralgic_array(p):
+    '''
+    neuralgic_array :
+    '''
+    id = S.Symbols.pop()
+    qtype = S.Types.pop()
+    global dims
+    if not dims:
+        print(f"Error! Variable '{id}' is atomic!")
+        quit()
+    else:
+        S.Dimensions.append((id, 1))
+        S.Operators.append('[')
+
+def p_evaluate_dimension(p):
+    '''
+    evaluate_dimension :
+    '''
+    if S.Types[-1][0] > 0:
+        print(f"Index error on variable '{dims.ID}'! Indexes must be integer values.")
+        quit()
+    dimension_tracker(1)
+
+def p_end_dimensions(p):
+    '''
+    end_dimensions :
+    '''
+    aux = S.Symbols.pop()
+    pointer = temporary_handler(4)
+    quad_gen(('<+>', quad_address(aux), dims.v_address, pointer))
+    S.Operators.pop()
+# NEWWW
 
 def p_neuralgic_params(p):
     '''
@@ -914,7 +982,7 @@ def p_neuralgic_params(p):
                 memory.lcls[1] += 1
                 params.append((2, address))
 
-            new_var = var_object(IDList[i-1], (qtype, IDList[i]), address, 1)
+            new_var = var_object(IDList[i-1], (qtype, IDList[i]), address, [[0, 0], 1])
             variables.append(new_var)
         funDir.modules[-1].prototyping = params
 
@@ -955,13 +1023,8 @@ def p_neuralgic_print(p):
                 operation = 'LPrint'
             if IDList[i] == None or IDList[i] == '(':
                 continue
-            res = res = find(IDList[i], 'cte')
-            if not res:
-                res= find(IDList[i], 'var')
-                if not res:
-                    print(f"Error! Variable '{IDList[i]}' doesn't exist!")
-                    quit()
 
+            quad_address(IDList[i])
             msg = quad_address()
             S.Types.pop()
             new_quad = quadruple(operation, None, None, msg)
@@ -976,24 +1039,14 @@ def p_neuralgic_input(p):
     '''
     neuralgic_input :
     '''
-    res = find(p[-4], 'cte')
-    if not res:
-        res = find(p[-4], 'var')
-        if not res:
-            print(f"Error! Variable '{p[-4]}' doesn't exist!")
-            quit()
-
+    quad_address(p[-4])
     msg = quad_address()
     mtype = S.Types.pop()
     if mtype[0] != 2:
         print(f"Error while performing input! '{p[-4]}' is not a string!")
         quit()
-    storage = find(p[-2], 'var')
-    if not storage:
-        print(f"Error! Variable '{p[-2]}' doesn't exist!")
-        quit()
-
-    quad_gen(('Input', None, msg, storage.v_address))
+    storage = quad_address(p[-2])
+    quad_gen(('Input', None, msg, storage))
 
 def p_verify_ID(p):
     '''
@@ -1042,17 +1095,10 @@ def p_add_call(p):
     for module in funDir.modules:
         if module.ID == p[-1][0]:
             fun = module
-    qtype = None
-    if fun.type == 'int':
-        qtype = (0, fun.type)
-    elif fun.type == 'float':
-        qtype = (1, fun.type)
-    elif fun.type == 'string':
-        qtype = (2, fun.type)
-    else:
-        qtype = (-1, fun.type)
-    S.Symbols.append(fun.ID)
-    S.Types.append(qtype)
+    if fun.type in ['int', 'float', 'string']:
+        typeint = 0 if fun.type == 'int' else 1 if fun.type == 'float' else 2
+        temp = temporary_handler(typeint)
+        quad_gen(('<-', None, quad_address(fun.ID), temp))
 
 def p_neuralgic_if(p):
     '''
