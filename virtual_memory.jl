@@ -70,3 +70,4 @@ ranges = [1000:2999,
           31000:31999]
 
 operators = ["++", "--", "^", "*", "/", "+", "-", "<", "<=", ">", ">=", "==", "¬=", "and", "or", "<-"]
+stats = ["Size", "Mean", "Median", "Mode", "Variance", "Std", "Range", "Sum"]

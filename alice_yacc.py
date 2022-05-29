@@ -10,6 +10,7 @@ tmpvar_n = -1
 quad_count = -1
 fun = False
 dims = False
+dim = None
 recursive_calls = []
 
 S = stacks()
@@ -62,8 +63,8 @@ def quad_gen(quad):
     quadruples.append(new_quad)
     quad_count += 1
 
-def quad_address(temp=False):
-    if not temp:
+def quad_address(temp=None):
+    if temp == None:
         temp = S.Symbols.pop()
     token = find(temp, 'cte')
     if not token:
@@ -207,14 +208,17 @@ def unary_handler(p, operator):
 
 # NEWWW
 def dimension_tracker(dim):
-    address = quad_address(S.Symbols[-1])
+    val = quad_address(S.Symbols[-1])
     curr = dims.arr_size if type(dims.arr_size[1]) != list else dims.arr_size[0]
-    quad_gen(('Verify', address, curr[0][0], curr[0][1]))
+    izq = find(curr[0][0], 'cte')
+    der = find(curr[0][1], 'cte')
+    quad_gen(('Verify', val, izq.v_address, der.v_address))
 
     if type(dims.arr_size[1]) == list:
         aux = [S.Symbols.pop(), S.Types.pop()]
         temp = temporary_handler(0)
-        quad_gen(('<*>', address, curr[1], temp))
+        size = find(curr[0][1], 'cte')
+        quad_gen(('*', val, size.v_address, temp))
     if dim > 1:
         aux2 = [quad_address(S.Symbols.pop()), S.Types.pop()]
         aux1 = [quad_address(S.Symbols.pop()), S.Types.pop()]
@@ -594,7 +598,7 @@ def p_variable(p):
     if len(p) == 9:
         p[0] = p[1], p[5], p[7]
     elif len(p) == 11:
-        p[0] = p[1], p[5], p[8], p[9]
+        p[0] = p[1], p[5], p[7], p[8], p[9]
     else:
         p[0] = p[1]
 
@@ -642,6 +646,7 @@ def p_systemdef(p):
               | VARIANCE LPAREN ID RPAREN
               | STD LPAREN ID RPAREN
               | RANGE LPAREN ID RPAREN
+              | SUM LPAREN ID RPAREN
     '''
     p[0] = p[1], p[3]
 
@@ -785,6 +790,8 @@ def p_popexpr(p):
     '''
     popexpr :
     '''
+    if not S.Symbols:
+        return
     S.Symbols.pop()
     S.Types.pop()
 
@@ -810,6 +817,9 @@ def p_neuralgic_dec(p):
         arr_size = [[0, 0], 1]
     elif p[-1][1] == None:
         dim1 = int(p[-1][0])
+        constant_handler([dim1 - 1], (0, 'int'), False)
+        constant_handler([1], (0, 'int'), False)
+        constant_handler([0], (0, 'int'), False)
         if dim1 <= 1:
             print(f"Error! Array's size isn't valid!")
             quit()
@@ -817,6 +827,11 @@ def p_neuralgic_dec(p):
     else:
         dim1 = int(p[-1][0])
         dim2 = int(p[-1][1])
+        constant_handler([dim1 - 1], (0, 'int'), False)
+        constant_handler([dim2 - 1], (0, 'int'), False)
+        constant_handler([dim2], (0, 'int'), False)
+        constant_handler([1], (0, 'int'), False)
+        constant_handler([0], (0, 'int'), False)
         if dim1 <= 1 or dim2 <= 1:
             print(f"Error! Matrix's {'1st' if dim1 <= 0 else '2nd'} dimension's value isn't valid!")
             quit()
@@ -921,6 +936,7 @@ def p_neuralgic_var(p):
     if type(var.arr_size[1]) == list or var.arr_size[0][1] > 0:
         global dims
         dims = var
+        constant_handler([dims.v_address], (0, 'int'), False)
 
 def p_neuralgic_array(p):
     '''
@@ -940,18 +956,24 @@ def p_evaluate_dimension(p):
     '''
     evaluate_dimension :
     '''
-    if S.Types[-1][0] > 0:
+    if S.Types[-1][0] not in [0, 4]:
         print(f"Index error on variable '{dims.ID}'! Indexes must be integer values.")
         quit()
-    dimension_tracker(1)
+    global dim
+    dim = 1
+    dimension_tracker(dim)
 
 def p_end_dimensions(p):
     '''
     end_dimensions :
     '''
+    if dim == 1 and type(dims.arr_size[1]) == list:
+        print(f"Error! {dims.ID} is a matrix, expected another index.")
+        quit()
     aux = S.Symbols.pop()
     pointer = temporary_handler(4)
-    quad_gen(('<+>', quad_address(aux), dims.v_address, pointer))
+    baseD = quad_address(dims.v_address)
+    quad_gen(('+', quad_address(aux), baseD, pointer))
     S.Operators.pop()
 # NEWWW
 
@@ -1012,11 +1034,23 @@ def p_neuralgic_print(p):
     neuralgic_print :
     '''
     global quad_count
+    if not S.Symbols:
+        print(f"Incorrect value provided to print function!")
+        quit()
     if p[-2] == None:
         quad_gen(('LPrint', None, None, None))
     else:
         temp_quads = quadruple_list()
         IDList = list(get_IDs(p[-2]))
+        to_remove = []
+        for i in range(len(IDList)):
+            if IDList[i] == ']' or IDList[i] == ',':
+                to_remove.append(IDList[i-1])
+                to_remove.append(IDList[i])
+            if IDList[i] in ['size', 'mean', 'median', 'mode', 'variance', 'std', 'range', 'sum']:
+                to_remove.append(IDList[i+1])
+        if len(to_remove) > 0:
+            IDList = [val for val in IDList if val not in to_remove]
         for i in range(len(IDList)):
             operation = 'Print'
             if i == 0:
@@ -1024,7 +1058,6 @@ def p_neuralgic_print(p):
             if IDList[i] == None or IDList[i] == '(':
                 continue
 
-            quad_address(IDList[i])
             msg = quad_address()
             S.Types.pop()
             new_quad = quadruple(operation, None, None, msg)
@@ -1039,10 +1072,9 @@ def p_neuralgic_input(p):
     '''
     neuralgic_input :
     '''
-    quad_address(p[-4])
     msg = quad_address()
     mtype = S.Types.pop()
-    if mtype[0] != 2:
+    if mtype[0] not in [2, 4]:
         print(f"Error while performing input! '{p[-4]}' is not a string!")
         quit()
     storage = quad_address(p[-2])
@@ -1255,16 +1287,21 @@ def p_neuralgic_stats(p):
     '''
     neuralgic_stats :
     '''
-    type = 0 if p[-1][0] == 'size' else 1
-    address = temporary_handler(type)
+    qtype = 0 if p[-1][0] == 'size' else -1 if p[-1][0] == 'range' else 1
     res = find(p[-1][1], 'var')
+    qtype = 0 if res.type[0] == 0 and p[-1][0] in ['mode', 'sum'] else 1
+    address = temporary_handler(qtype) if qtype >= 0 else None
     if not res:
         print(f"Error! Variable '{p[-1][1]}' does not exist!")
         quit()
-    if res.arr_size == 1:
-        print(f"Error! Variable '{p[-1][1]}' is not an array!")
+    if res.arr_size[0][1] == 0 or type(res.arr_size[1]) == list:
+        print(f"Error! Variable '{p[-1][1]}' is not an unidimensional array!")
         quit()
-    quad_gen((p[-1][0].capitalize(), None, res.v_address, address))
+    if res.type[0] > 1:
+        print(f"Error! Variable '{p[-1][1]}' does not contain numeric values!")
+        quit()
+    lsup = res.arr_size[0][1] + res.v_address
+    quad_gen((p[-1][0].capitalize(), res.v_address, lsup, address))
 
 def p_neuralgic_return(p):
     '''

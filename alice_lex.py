@@ -28,7 +28,8 @@ reserved_words = {
     'mode'      : 'MODE',
     'variance'  : 'VARIANCE',
     'std'       : 'STD',
-    'range'     : 'RANGE'
+    'range'     : 'RANGE',
+    'sum'       : 'SUM'
 }
 
 tokens = [

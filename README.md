@@ -136,3 +136,19 @@ En la máquina virtual se hicieron los cambios para soportar el nuevo tipo de da
   1. Agregar soporte de arreglos en máquina virtual.
   2. Agregar soporte de matrices.
   3. Agregar soporte de funciones estadísticas.
+
+## Avance 8:
+En `virtual_machine.jl` se generaron las verificaciones semánticas y el código intermedio para los arreglos y los datos de tipo _pointer_.
+
+En `alice_yacc.py` se agregó el punto neurálgico para las funciones estadísticas, a continuación se describirá el comportamiento de las funciones soportadas:
+    - **size(list)**: retorna un valor de tipo entero que corresponde al largo del arreglo proveído.
+    - **mean(list)**: calcula el promedio de los valores contenidos en el arreglo que recibe como parámetro y retorna un valor de tipo _float_.
+    - **median(list)**: calcula la mediana de los valores contenidos en el arreglo que recibe y retorna un valor de tipo _float_.
+    - **mode(list)**: retorna la moda de los valores contenidos en el arreglo recibido como parámtro de la función, la cual puede ser _int_ o _float_ dependiendo del tipo del parámetro.
+    - **variance(list)**: calcula la varianza de los valores contenidos en el arreglo que recibe y retorna un valor de tipo _float_.
+    - **std(list)**: calcula la desviación estándar de los valores contenidos en el arreglo que recibe y retorna un valor de tipo _float_.
+    - **sum(list)**: retorna la suma de los valores contenidos en el arreglo recibido como parámtro de la función, la cual puede ser _int_ o _float_ dependiendo del tipo del parámetro.
+
+En `virtual_machine.jl` y `virtual_memory.jl` se creó el código intermedio para soportar funciones estadísticas, así como funciones y estructuras auxiliares necesarias para ejecutar dichas funciones.
+
+Finalmente, se creó `datascience.aaw` para demostrar el funcionamiento de las funciones estadísticas implementadas hasta el momento.

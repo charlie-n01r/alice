@@ -1,5 +1,5 @@
 include("virtual_memory.jl")
-using JSON, Printf
+using JSON, Printf, StatsBase
 
 IP = 1
 Fun = []
@@ -7,6 +7,8 @@ Global = GlobalMem(Persistent([], [], []), Persistent([], [], []))
 CurrMem = MemoryObj(Persistent([], [], []), Temporary([], [], [], []))
 MemoryStack = [CurrMem]
 PointerStack = [IP]
+has_address = []
+pointers = [has_address]
 
 function extract()
     try
@@ -19,7 +21,7 @@ function extract()
     end
 end
 
-function store_or_fetch(address::Int64, do_store::Bool, value::Any=false)
+function store_or_fetch(address::Int64, do_store::Bool=false, value::Any=false)
     if address ∈ ranges[1]
         do_store && return store(Global.variables, value, convert(UInt16, address - ranges[1][1] + 1), '1')
         return fetch(Global.variables, convert(UInt16, address - ranges[1][1] + 1), '1')
@@ -77,8 +79,8 @@ function conversion(address::Int64, value::String)
 end
 
 function operations(data::Vector{Any}, operation::String)
-    left = data[2] == nothing ? 0 : store_or_fetch(data[2], false)
-    right = store_or_fetch(data[3], false)
+    left = data[2] == nothing ? 0 : store_or_fetch(data[2])
+    right = store_or_fetch(data[3])
     # Arithmetic
     operation == "+" && store_or_fetch(data[4], true, left + right)
     operation == "-" && store_or_fetch(data[4], true, left - right)
@@ -100,24 +102,32 @@ function operations(data::Vector{Any}, operation::String)
     operation == "++" && store_or_fetch(data[4], true, right + 1)
     operation == "--" && store_or_fetch(data[4], true, right - 1)
     # Boolean logic
-    operation == ">" && store_or_fetch(data[4], true, left > right)
-    operation == ">=" && store_or_fetch(data[4], true, left >= right)
-    operation == "<" && store_or_fetch(data[4], true, left < right)
-    operation == "<=" && store_or_fetch(data[4], true, left <= right)
-    operation == "==" && store_or_fetch(data[4], true, left == right)
-    operation == "¬=" && store_or_fetch(data[4], true, left != right)
+    operation == ">"   && store_or_fetch(data[4], true, left > right)
+    operation == ">="  && store_or_fetch(data[4], true, left >= right)
+    operation == "<"   && store_or_fetch(data[4], true, left < right)
+    operation == "<="  && store_or_fetch(data[4], true, left <= right)
+    operation == "=="  && store_or_fetch(data[4], true, left == right)
+    operation == "¬="  && store_or_fetch(data[4], true, left != right)
     operation == "and" && store_or_fetch(data[4], true, left && right)
-    operation == "or" && store_or_fetch(data[4], true, left || right)
+    operation == "or"  && store_or_fetch(data[4], true, left || right)
     # Assignment
     operation == "<-" && store_or_fetch(data[4], true, right)
-    global PointerStack[end] += 1
 end
 
 function printquad(msg_address::Union{Int64, Nothing}, last::Bool, jump::Bool=true)
     if msg_address == nothing
         message = ""
     else
-        message = store_or_fetch(msg_address, false)
+        if msg_address ∈ ranges[end]
+            real_address = store_or_fetch(convert(Int64, msg_address))
+            message = store_or_fetch(convert(Int64, real_address))
+            if message === false
+                println("Value Error! One or more variables weren't assigned a value before printing.")
+                exit()
+            end
+        else
+            message = store_or_fetch(msg_address)
+        end
     end
     if msg_address ∈ ranges[3] || msg_address ∈ ranges[6] || msg_address ∈ ranges[end-1]
         message = message[2:end-1]
@@ -128,12 +138,22 @@ function printquad(msg_address::Union{Int64, Nothing}, last::Bool, jump::Bool=tr
 end
 
 function go_to_eval(data::Vector{Any}, type::Bool)
-    result = store_or_fetch(data[2], false)
+    result = store_or_fetch(data[2])
     if (result && type) || (!result && !type)
         global PointerStack[end] = data[4] + 1
     else
         global PointerStack[end] += 1
     end
+end
+
+function statistics(data::Vector{Real}, operation::String, storage::Int64)
+    operation == "Size"       && store_or_fetch(storage, true, length(data))
+    operation == "Mean"       && store_or_fetch(storage, true, mean(data))
+    operation == "Median"     && store_or_fetch(storage, true, median(data))
+    operation == "Mode"       && store_or_fetch(storage, true, mode(data))
+    operation == "Variance"   && store_or_fetch(storage, true, var(data))
+    operation == "Std"        && store_or_fetch(storage, true, std(data))
+    operation == "Sum"        && store_or_fetch(storage, true, sum(data))
 end
 
 # Main
@@ -153,7 +173,21 @@ while true
 
     # Basic operations
     elseif current[1] ∈ operators
+        old_curr = copy(current)
+        #println("Original:\n",old_curr)
+        for i ∈ 2:length(current)
+            current[i] ∈ ranges[end] || continue
+            if !(current[i] ∈ has_address)
+                push!(has_address, current[i])
+            else
+                real_address = store_or_fetch(convert(Int64, current[i]))
+                current[i] = convert(Int64, real_address)
+            end
+        end
+        #println("After:\n",old_curr)
         operations(current, current[1])
+        current = old_curr
+        global PointerStack[end] += 1
         continue
 
     # I/O
@@ -203,7 +237,7 @@ while true
         end
         for address ∈ current[3]
             try
-                if store_or_fetch(address, false) !== false
+                if store_or_fetch(address) !== false
                     continue
                 end
             catch
@@ -217,7 +251,7 @@ while true
         global PointerStack[end] += 1
         continue
     elseif current[1] == "Parameter"
-        push!(Fun, store_or_fetch(current[3], false))
+        push!(Fun, store_or_fetch(current[3]))
         global PointerStack[end] += 1
         continue
     elseif current[1] == "GoSub"
@@ -240,7 +274,32 @@ while true
     elseif current[1] == "EndModule"
         pop!(MemoryStack)
         pop!(PointerStack)
+        global PointerStack[end] += 1
         continue
+
+    # Arrays
+    elseif current[1] == "Verify"
+        val = store_or_fetch(current[2])
+        inf = store_or_fetch(current[3])
+        sup = store_or_fetch(current[4])
+        if !(val ∈ inf:sup)
+            @printf("Index out of bounds! Expected a value between %d and %d.\n", inf, sup)
+            exit()
+        end
+        global PointerStack[end] += 1
+        continue
+    elseif current[1] ∈ stats
+        values = [store_or_fetch(val) for val ∈ current[2]:current[3]]
+        values = convert(Vector{Real}, values)
+        if current[1] == "Range"
+            (current[2] ∈ ranges[1] || current[2] ∈ ranges[4]) && @printf("Range: %d - %d\n", minimum(values), maximum(values))
+            (current[2] ∈ ranges[2] || current[2] ∈ ranges[5]) && @printf("Range: %f - %f\n", minimum(values), maximum(values))
+        else
+            statistics(values, current[1], current[4])
+        end
+        global PointerStack[end] += 1
+        continue
+
     else
         println(current)
         global PointerStack[end] += 1
