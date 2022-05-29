@@ -140,7 +140,7 @@ En la máquina virtual se hicieron los cambios para soportar el nuevo tipo de da
 ## Avance 8:
 En `virtual_machine.jl` se generaron las verificaciones semánticas y el código intermedio para los arreglos y los datos de tipo _pointer_.
 
-En `alice_yacc.py` se agregó el punto neurálgico para las funciones estadísticas, a continuación se describirá el comportamiento de las funciones soportadas:
+En `alice_yacc.py` se agregó el punto neurálgico para las funciones estadísticas, incluyendo una nueva función como extra del alcance del proyecto llamada **sum**. A continuación se describirá el comportamiento de las funciones soportadas:
     - **size(list)**: retorna un valor de tipo entero que corresponde al largo del arreglo proveído.
     - **mean(list)**: calcula el promedio de los valores contenidos en el arreglo que recibe como parámetro y retorna un valor de tipo _float_.
     - **median(list)**: calcula la mediana de los valores contenidos en el arreglo que recibe y retorna un valor de tipo _float_.
@@ -152,3 +152,7 @@ En `alice_yacc.py` se agregó el punto neurálgico para las funciones estadísti
 En `virtual_machine.jl` y `virtual_memory.jl` se creó el código intermedio para soportar funciones estadísticas, así como funciones y estructuras auxiliares necesarias para ejecutar dichas funciones.
 
 Finalmente, se creó `datascience.aaw` para demostrar el funcionamiento de las funciones estadísticas implementadas hasta el momento.
+
+### ToDo:
+  1. Agregar soporte de matrices.
+  2. Extender aún mas las funciones estadísticas.
