@@ -182,26 +182,29 @@ Todas las anteriores funciones reciben un sólo parámetro, una expresión, y re
 Supongamos que se tiene una variable llamada `data` con los siguientes valores: `[9, 70, 93, 53, 92, 85, 75, 70, 68, 88, 76, 70, 77, 85, 82, 82, 80, 96, 100, 85]`
 ```matlab
 let x::int;
-let stats::float[5];
+let stats::float[6];
 
-stats[0] <-mean(data);
-stats[1] <-median(data);
-stats[2] <-mode(data);
-stats[3] <-variance(data);
+range(data);
+stats[0] <- mean(data);
+stats[1] <- median(data);
+stats[2] <- mode(data);
+stats[3] <- variance(data);
 stats[4] <- std(data);
+stats[5] <- sum(data);
 
-for x <- 0:size(results):
+for x <- 0:size(stats):
   print(stats[x]);
 end
 
-print(range(data));
 ```
 ```
+Range: 9 - 100
 76.8
 81.0
 70
 377.6421052631579
 19.433015856092894
+1536
 ```
 
 ## Diagramas de sintaxis:
