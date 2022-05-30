@@ -14,7 +14,7 @@ Se creó el archivo `structs.py`, el cual contiene las siguientes estructuras de
   - **var_table**: La tabla de variables. Esta clase solamente contiene una lista a la que se le irán añadiendo objetos del tipo `var_object` al momento de declararse una nueva variable.
   - **fun_object**: Este objeto representa una entrada en el directorio de funciones y contiene información similar a la de `var_object` excepto por el campo de "valor". Así mismo, este objeto irá almacenando IDs de variables dentro de dos diferentes atributos tipo _list_ que se definieron para la clase. `parameters` almacenará los parametros de la función, mientras que `variables` almacenará las variables locales de la misma. En caso de que una función no tenga alguna de las ya mencionadas categorías, se dejará la lista vacía.
   - **fun_dir**: El directorio de funciones. Similar en estructura a `var_table`, se utilizará para almacenar instancias de `fun_object`.
-  - **quadruple**: Los cuadruplos de las operaciones. Clase que provee la estructura básica de un cúadruplo, almacenando la operación a realizar, el o los operandos involucrados, así como el lugar donde se almacenará el resultado de la operación. En el futuro esta clase se extenderá para las operaciones de saltos.
+  - **quadruple**: Los cuádruplos de las operaciones. Clase que provee la estructura básica de un cúadruplo, almacenando la operación a realizar, el o los operandos involucrados, así como el lugar donde se almacenará el resultado de la operación. En el futuro esta clase se extenderá para las operaciones de saltos.
   - **stacks**: Clase que contiene todas las pilas que se utilizan para la compilación: La pila de operadores, la pila de símbolos u operandos, y la pila de saltos.
 
 Se creó el archivo `compile.py`, el cual solamente contiene el código utilizado para pruebas que se contenía dentro de `alice_yacc.py`. Esto a manera de modularizar más los archivos y dejar la lógica de la gramática separada de procesos ajenos.
@@ -42,7 +42,7 @@ Se agregó una función a manera de _log_ para exportar información pertinente 
   1. Al finalizar el parseo y generación de cuádruplos de una expresión, se queda en el stack de tipos y de operandos la última variable temporal creada, así como su respectivo tipo. Esto no ha afectado el parseo de ningún estatuto consiguiente, pero a la larga provoca que crezcan ambas pilas, vacíandose solamente al momento de finalizar la ejecución.
 
 ## Avance 4:
-En `alice_yacc.py` se agregaron los puntos neurálgicos para lo estatutos no lineales **if-then-else**, **while**, **do while** y **for**. Así mismo, se optimizó la creación de cuadruplos y se agregó el campo de _Largos_ al log para poder confirmar si la pila de operandos tiene el mismo largo que la pila de tipos al final de la ejecución.
+En `alice_yacc.py` se agregaron los puntos neurálgicos para lo estatutos no lineales **if-then-else**, **while**, **do while** y **for**. Así mismo, se optimizó la creación de cuádruplos y se agregó el campo de _Largos_ al log para poder confirmar si la pila de operandos tiene el mismo largo que la pila de tipos al final de la ejecución.
 
 Se simplificó la manera en la que se maneja la declaración de modulos y se agregó una verificación semántica para los estatutos de retorno para evitar returns globales, en main o funciones void.
 
@@ -156,3 +156,11 @@ Finalmente, se creó `datascience.aaw` para demostrar el funcionamiento de las f
 ### ToDo:
   1. Agregar soporte de matrices.
   2. Extender aún mas las funciones estadísticas.
+
+
+## Avance 9:
+En `alice_yacc.py` se agregó el punto neurálgico para utilizar matrices. Estas operaciones ya estaban implementadas en la máquina virtual, por lo que solamente se necesitó implementar la generación de cuádruplos para matrices.
+
+Se actualizó estéticamente la ejecución del script `alice` para tener una interfaz más vistoza.
+
+Se corrigieron las evaluaciones semánticas en expresiones que contenían uno o más valores de tipo pointer, ya que no generaban un valor de retorno de tipo booleano.
