@@ -206,7 +206,6 @@ def unary_handler(p, operator):
             S.Types.append(type_der)
             quad_gen((operator, None, der_address, der_address))
 
-# NEWWW
 def dimension_tracker(dim):
     val = quad_address(S.Symbols[-1])
     curr = dims.arr_size if type(dims.arr_size[1]) != list else dims.arr_size[0]
@@ -588,12 +587,11 @@ def p_value(p):
     '''
     p[0] = p[1]
 
-# NEWWW
 def p_variable(p):
     '''
     variable : ID neuralgic_var
              | ID neuralgic_var L_SBRKT neuralgic_array expr evaluate_dimension R_SBRKT end_dimensions
-             | ID neuralgic_var L_SBRKT neuralgic_array expr evaluate_dimension COMA expr R_SBRKT end_dimensions
+             | ID neuralgic_var L_SBRKT neuralgic_array expr evaluate_dimension COMA expr neuralgic_matrix R_SBRKT end_dimensions
     '''
     if len(p) == 9:
         p[0] = p[1], p[5], p[7]
@@ -922,7 +920,6 @@ def p_neuralgic_str(p):
     '''
     constant_handler(p, (2, 'string'))
 
-# NEWWW
 def p_neuralgic_var(p):
     '''
     neuralgic_var :
@@ -963,6 +960,14 @@ def p_evaluate_dimension(p):
     dim = 1
     dimension_tracker(dim)
 
+def p_neuralgic_matrix(p):
+    '''
+    neuralgic_matrix :
+    '''
+    global dim
+    dim += 1
+    dimension_tracker(dim)
+
 def p_end_dimensions(p):
     '''
     end_dimensions :
@@ -975,7 +980,6 @@ def p_end_dimensions(p):
     baseD = quad_address(dims.v_address)
     quad_gen(('+', quad_address(aux), baseD, pointer))
     S.Operators.pop()
-# NEWWW
 
 def p_neuralgic_params(p):
     '''
