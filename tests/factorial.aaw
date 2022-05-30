@@ -1,14 +1,25 @@
 begin facto:
-  module factorial::int(n::int):
+  module loop_factorial::int(n::int):
+    let res::int;
+    res <- 1;
+    while n > 0:
+      res <- res * n;
+      n--;
+    end
+    return res;
+  end
+
+  module re_factorial::int(n::int):
     if n == 1 then:
       return n;
     end
-      return n * factorial(n-1);
+      return n * re_factorial(n-1);
   end
 
   main:
     let x::int;
     input("Insert a number:", x);
-    print("The factorial of", x, "is", factorial(x));
+    print("The recursive factorial of", x, "is", re_factorial(x));
+    print("The looped factorial of", x, "is", loop_factorial(x));
   end
 endprog

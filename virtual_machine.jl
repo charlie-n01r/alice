@@ -184,7 +184,6 @@ while true
                 current[i] = convert(Int64, real_address)
             end
         end
-        #println("After:\n",old_curr)
         operations(current, current[1])
         current = old_curr
         global PointerStack[end] += 1

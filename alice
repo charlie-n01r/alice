@@ -1,16 +1,30 @@
 if [ $# -eq 0 ]; then
-  echo "$(cat logo)"
+
+  echo -e "\033[48;2;21;21;23m
+\033[38;2;94;193;189m     :::     :::        ::::::::::: ::::::::  :::::::::: \t
+\033[38;2;43;242;243m   :+: :+:   :+:            :+:    :+:    :+: :+:        \t
+\033[38;2;63;141;206m  +:+   +:+  +:+            +:+    +:+        +:+        \t
+\033[38;2;131;76;167m +#++:++#++: +#+            +#+    +#+        +#++:++#   \t
+\033[38;2;175;66;155m +#+     +#+ +#+            +#+    +#+        +#+        \t
+\033[38;2;153;9;136m #+#     #+# #+#            #+#    #+#    #+# #+#        \t
+\033[38;2;204;75;151m ###     ### ########## ########### ########  ########## \t
+
+\033[0;00m\033[38;2;250;231;164mAlice v0.9.1 (main, May 28 2022) on linux
+MIT License Copyright (c) 2022 Carlos Eduardo Govea González\033[0;00m\
+"
+
   loop="y"
   while [ $loop = "y" ]; do
     rm -f obj.json
-    printf  "\nInsert file name: "
+    printf  "\033[38;2;92;158;137m\nalice> \033[0;00m"
     read file
     if [ $file = "quit()" ]; then
       break
     fi
+    echo ""
     python3 alice_yacc.py $file;
     julia virtual_machine.jl
-    printf  "\nRead another file?[y/n]: "
+    printf  "\033[38;2;92;158;137m\n>Read another file?[y/n]: \033[0;00m"
     read loop
   done
 else

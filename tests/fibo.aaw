@@ -1,14 +1,35 @@
 begin fibo:
-  module fibonacci::int(n::int):
+  module loop_fibonnaci::int(n::int):
+    let a,b,c,x::int;
+    a <- 0;
+    b <- 1;
+    if n == 0 then:
+      return a;
+    else:
+      if n == 1 then:
+        return b;
+      else:
+        for x <- 2:(n+1):
+          c <- a + b;
+          a <- b;
+          b <- c;
+        end
+        return b;
+      end
+    end
+  end
+
+  module re_fibonacci::int(n::int):
     if n <= 1 then:
       return n;
     end
-      return fibonacci(n-1) + fibonacci(n-2);
+      return re_fibonacci(n-1) + re_fibonacci(n-2);
   end
 
   main:
     let x::int;
     input("Insert a number:", x);
-    print("The", x, "fibonacci number is", fibonacci(x));
+    print("Recursive fibonnaci:", re_fibonacci(x));
+    print("Looped fibonnaci:", loop_fibonnaci(x));
   end
 endprog
