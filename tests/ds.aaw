@@ -1,27 +1,9 @@
 begin DS:
-  let x::int[20];
+  let x,y::int[20];
 
   main:
-    x[0] <- 9;
-    x[1] <- 70;
-    x[2] <- 93;
-    x[3] <- 53;
-    x[4] <- 92;
-    x[5] <- 85;
-    x[6] <- 75;
-    x[7] <- 70;
-    x[8] <- 68;
-    x[9] <- 88;
-    x[10] <- 76;
-    x[11] <- 70;
-    x[12] <- 77;
-    x[13] <- 85;
-    x[14] <- 82;
-    x[15] <- 82;
-    x[16] <- 80;
-    x[17] <- 96;
-    x[18] <- 100;
-    x[19] <- 85;
+    mirror("tests/test.mrr", x);
+    mirror("tests/test.mrr", y);
 
     print("Description of array x:");
     range(x);
@@ -33,5 +15,14 @@ begin DS:
     print("Variance:", variance(x));
     print("Standard Deviation", std(x));
     print("Sum of contents:", sum(x));
+    print("Smallest value:", min(x));
+    print("Largest value:", max(x));
+
+    print("---Graphing section---");
+    histogram(x, "hist.png");
+    box(x, "box.jpeg");
+    violin(x, "violin.pdf");
+    bar(x, y, "bar.html");
+    scatter(x, y, "scatter.svg");
   end
 endprog

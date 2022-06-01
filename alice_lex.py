@@ -29,7 +29,15 @@ reserved_words = {
     'variance'  : 'VARIANCE',
     'std'       : 'STD',
     'range'     : 'RANGE',
-    'sum'       : 'SUM'
+    'sum'       : 'SUM',
+    'min'       : 'MIN',
+    'max'       : 'MAX',
+    'histogram' : 'HIST',
+    'violin'    : 'VIOLIN',
+    'box'       : 'BOXPLOT',
+    'bar'       : 'BAR',
+    'scatter'   : 'SCATTER',
+    'mirror'    : 'MIRROR'
 }
 
 tokens = [

@@ -69,6 +69,9 @@ def quad_address(temp=None):
     token = find(temp, 'cte')
     if not token:
         token = find(temp, 'var')
+    if not token:
+        print(f"Error! Variable '{temp}' wasn't declared!")
+        quit()
     return token.v_address
 
 def temporary_handler(type, append=True, name=False):
@@ -302,8 +305,6 @@ def get_IDs(IDList):
              yield item
 
 def end_yacc():
-    with open('log.txt', 'w') as file:
-         file.write(f'Final Status:\nOperands: {S.Symbols}\nTypes: {S.Types}\nModules: {funDir.modules}\nOperators: {S.Operators}\nTemp. Variables: {[memory.tmpi[1], memory.tmpf[1], memory.tmpb[1]]}\nQuad Count: {quad_count + 1}')
     export(quadruples, constants, funDir)
 
 #---------------------------Program Structure-----------------------------------
@@ -349,7 +350,9 @@ def p_stmt(p):
          | print
          | input
          | iteration
+         | plot
          | declaration
+         | mirror
          | expression popexpr
          | return
     '''
@@ -635,6 +638,30 @@ def p_input(p):
     input : INPUT LPAREN expr COMA ID RPAREN neuralgic_input SEMICOLON
     '''
 
+def p_mirror(p):
+    '''
+    mirror : MIRROR LPAREN expr COMA ID RPAREN SEMICOLON neuralgic_mirror
+    '''
+
+def p_plot(p):
+    '''
+    plot : x_plot
+         | xy_plot
+    '''
+
+def p_x_plot(p):
+    '''
+    x_plot : HIST LPAREN ID COMA CTE_STRING RPAREN SEMICOLON neuralgic_xplot
+           | VIOLIN LPAREN ID COMA CTE_STRING RPAREN SEMICOLON neuralgic_xplot
+           | BOXPLOT LPAREN ID COMA CTE_STRING RPAREN SEMICOLON neuralgic_xplot
+    '''
+
+def p_xy_plot(p):
+    '''
+    xy_plot : BAR LPAREN ID COMA ID COMA CTE_STRING RPAREN SEMICOLON neuralgic_xyplot
+            | SCATTER LPAREN ID COMA ID COMA CTE_STRING RPAREN SEMICOLON neuralgic_xyplot
+    '''
+
 def p_systemdef(p):
     '''
     systemdef : SIZE LPAREN ID RPAREN
@@ -645,6 +672,8 @@ def p_systemdef(p):
               | STD LPAREN ID RPAREN
               | RANGE LPAREN ID RPAREN
               | SUM LPAREN ID RPAREN
+              | MIN LPAREN ID RPAREN
+              | MAX LPAREN ID RPAREN
     '''
     p[0] = p[1], p[3]
 
@@ -855,13 +884,13 @@ def p_neuralgic_dec(p):
                 if address >= memory.gblf[0]:
                     print(f'Error! Too many global integer variables!')
                     quit()
-                memory.gbli[1] =  memory.gbli[1] + arr_size[1] if type(arr_size[1]) == int else memory.gbli[1] + tsize
+                memory.gbli[1] =  memory.gbli[1] + arr_size[0][1] + 1 if type(arr_size[1]) == int else memory.gbli[1] + tsize
             else:
                 address = memory.lcli[0] + memory.lcli[1]
                 if address >= memory.lclf[0]:
                     print(f'Error! Too many local integer variables!')
                     quit()
-                memory.lcli[1] =  memory.lcli[1] + arr_size[1] if type(arr_size[1]) == int else memory.lcli[1] + tsize
+                memory.lcli[1] =  memory.lcli[1] + arr_size[0][1] + 1 if type(arr_size[1]) == int else memory.lcli[1] + tsize
 
         elif p[-2] == 'float':
             qtype = (1, p[-2])
@@ -870,13 +899,13 @@ def p_neuralgic_dec(p):
                 if address >= memory.gbls[0]:
                     print(f'Error! Too many global float variables!')
                     quit()
-                memory.gblf[1] =  memory.gblf[1] + arr_size[1] if type(arr_size[1]) == int else memory.gblf[1] + tsize
+                memory.gblf[1] =  memory.gblf[1] + arr_size[0][1] + 1 if type(arr_size[1]) == int else memory.gblf[1] + tsize
             else:
                 address = memory.lclf[0] + memory.lclf[1]
                 if address >= memory.lcls[0]:
                     print(f'Error! Too many local float variables!')
                     quit()
-                memory.lclf[1] =  memory.lclf[1] + arr_size[1] if type(arr_size[1]) == int else memory.lclf[1] + tsize
+                memory.lclf[1] =  memory.lclf[1] + arr_size[0][1] + 1 if type(arr_size[1]) == int else memory.lclf[1] + tsize
 
         else:
             qtype = (2, p[-2])
@@ -885,13 +914,13 @@ def p_neuralgic_dec(p):
                 if address >= memory.lcli[0]:
                     print(f'Error! Too many global string variables!')
                     quit()
-                memory.gbls[1] =  memory.gbls[1] + arr_size[1] if type(arr_size[1]) == int else memory.gbls[1] + tsize
+                memory.gbls[1] =  memory.gbls[1] + arr_size[0][1] + 1 if type(arr_size[1]) == int else memory.gbls[1] + tsize
             else:
                 address = memory.lcls[0] + memory.lcls[1]
                 if address >= memory.tmpi[0]:
                     print(f'Error! Too many local string variables!')
                     quit()
-                memory.lcls[1] =  memory.lcls[1] + arr_size[1] if type(arr_size[1]) == int else memory.lcls[1] + tsize
+                memory.lcls[1] =  memory.lcls[1] + arr_size[0][1] + 1 if type(arr_size[1]) == int else memory.lcls[1] + tsize
 
         new_var = var_object(ID, qtype, address, arr_size)
         variables.append(new_var)
@@ -1051,7 +1080,7 @@ def p_neuralgic_print(p):
             if IDList[i] == ']' or IDList[i] == ',':
                 to_remove.append(IDList[i-1])
                 to_remove.append(IDList[i])
-            if IDList[i] in ['size', 'mean', 'median', 'mode', 'variance', 'std', 'range', 'sum']:
+            if IDList[i] in ['size', 'mean', 'median', 'mode', 'variance', 'std', 'range', 'sum', 'min', 'max']:
                 to_remove.append(IDList[i+1])
         if len(to_remove) > 0:
             IDList = [val for val in IDList if val not in to_remove]
@@ -1083,6 +1112,22 @@ def p_neuralgic_input(p):
         quit()
     storage = quad_address(p[-2])
     quad_gen(('Input', None, msg, storage))
+
+def p_neuralgic_mirror(p):
+    '''
+    neuralgic_mirror :
+    '''
+    if S.Types[-1][0] != 2:
+        print("Semantic error in first argument of mirror function! Expected string value.")
+        quit()
+    filename = quad_address()
+    storage = find(p[-3], 'var')
+    if storage.type[0] > 1 or type(storage.arr_size[1]) == list:
+        print("Semantic error in second argument of mirror function! Expected an unidimensional array of types int or float.")
+        quit()
+
+    lsup = storage.arr_size[0][1] + storage.v_address
+    quad_gen(('Mirror', filename, storage.v_address, lsup))
 
 def p_verify_ID(p):
     '''
@@ -1293,7 +1338,7 @@ def p_neuralgic_stats(p):
     '''
     qtype = 0 if p[-1][0] == 'size' else -1 if p[-1][0] == 'range' else 1
     res = find(p[-1][1], 'var')
-    qtype = 0 if res.type[0] == 0 and p[-1][0] in ['mode', 'sum'] else 1
+    qtype = 0 if res.type[0] == 0 and p[-1][0] in ['mode', 'sum', 'min', 'max'] else 1
     address = temporary_handler(qtype) if qtype >= 0 else None
     if not res:
         print(f"Error! Variable '{p[-1][1]}' does not exist!")
@@ -1306,6 +1351,45 @@ def p_neuralgic_stats(p):
         quit()
     lsup = res.arr_size[0][1] + res.v_address
     quad_gen((p[-1][0].capitalize(), res.v_address, lsup, address))
+
+def p_neuralgic_xplot(p):
+    '''
+    neuralgic_xplot :
+    '''
+    array = find(p[-5], 'var')
+    filename = p[-3][1:-1].split('.')
+    if len(filename) != 2:
+        print('Error! Incorrect filename provided.')
+        quit()
+    extensions = ['jpeg', 'png', 'html', 'json', 'svg', 'webp', 'pdf']
+    if filename[1] not in extensions:
+        print(f"Error! {filename[1]} export format not supported! Supported formats are {', '.join(extensions)}.")
+        quit()
+    constant_handler([p[-3]], (2, 'string'))
+    filename = quad_address()
+    lsup = array.arr_size[0][1] + array.v_address
+    quad_gen((p[-7].capitalize(), array.v_address, lsup, filename))
+
+def p_neuralgic_xyplot(p):
+    '''
+    neuralgic_xyplot :
+    '''
+    yarray = find(p[-5], 'var')
+    xarray = find(p[-7], 'var')
+    filename = p[-3][1:-1].split('.')
+    if len(filename) != 2:
+        print('Error! Incorrect filename provided.')
+        quit()
+    extensions = ['jpeg', 'png', 'html', 'json', 'svg', 'webp', 'pdf']
+    if filename[1] not in extensions:
+        print(f"Error! {filename[1]} export format not supported! Supported formats are {', '.join(extensions)}.")
+        quit()
+    constant_handler([p[-3]], (2, 'string'))
+    filename = quad_address()
+    lsup1 = xarray.arr_size[0][1] + xarray.v_address
+    lsup2 = yarray.arr_size[0][1] + yarray.v_address
+    quad_gen((p[-9].capitalize(), xarray.v_address, lsup1, filename))
+    quad_gen((p[-9].capitalize(), yarray.v_address, lsup2, filename))
 
 def p_neuralgic_return(p):
     '''

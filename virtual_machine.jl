@@ -1,5 +1,5 @@
 include("virtual_memory.jl")
-using JSON, Printf, StatsBase
+using JSON, Printf
 
 IP = 1
 Fun = []
@@ -154,6 +154,30 @@ function statistics(data::Vector{Real}, operation::String, storage::Int64)
     operation == "Variance"   && store_or_fetch(storage, true, var(data))
     operation == "Std"        && store_or_fetch(storage, true, std(data))
     operation == "Sum"        && store_or_fetch(storage, true, sum(data))
+    operation == "Min"        && store_or_fetch(storage, true, minimum(data))
+    operation == "Max"        && store_or_fetch(storage, true, maximum(data))
+end
+
+function plot_generator(data::Vector{Real}, type::String, filename::String)
+    color = ["rgb(153, 9, 136)", "rgb(131, 76, 167)"]
+    if type == "Histogram"
+        trace = histogram(x=data, marker=attr(color=color[1], opacity=0.6, line=attr(color=color[2], width=1.5)))
+    elseif type == "Violin"
+        trace = violin(x=data, marker=attr(color=color[1], opacity=0.6, line=attr(color=color[2], width=1.5)))
+    elseif type == "Box"
+        trace = box(x=data, marker=attr(color=color[1], opacity=0.6, line=attr(color=color[2], width=1.5)))
+    end
+    savefig(plot(trace), filename)
+end
+
+function plot_generator(xdata::Vector{Real}, ydata::Vector{Real}, type::String, filename::String)
+    color = ["rgb(153, 9, 136)", "rgb(131, 76, 167)"]
+    if type == "Bar"
+        trace = bar(x=xdata, y=ydata, marker=attr(color=color[1], opacity=0.6, line=attr(color=color[2], width=1.5)))
+    elseif type == "Scatter"
+        trace = scatter(x=xdata, y=ydata, marker=attr(color=color[1], opacity=0.6, line=attr(color=color[2], width=1.5)), mode="lines+markers")
+    end
+    savefig(plot(trace), filename)
 end
 
 # Main
@@ -214,6 +238,34 @@ while true
             exit()
         end
         store_or_fetch(address, true, input)
+        global PointerStack[end] += 1
+        continue
+    elseif current[1] == "Mirror"
+        filename = store_or_fetch(current[2])[2:end-1]
+        contents = nothing
+        try
+            file = open(filename, "r")
+            contents = split( read(file, String)[1:end-1], ';' )
+            close(file)
+        catch
+            println("Error file ", filename, " doesn't exist!")
+            exit()
+        end
+        try
+            if current[3] ∈ ranges[1] || current[3] ∈ ranges[4]
+                contents = map(s -> parse(Int64, s), contents)
+            else
+                contents = map(s -> parse(Float64, s), contents)
+            end
+        catch
+            println("Error file ", filename, " contains incorrect values or does not match the type of the storage value!")
+            exit()
+        end
+
+        for val ∈ current[3]:current[4]
+            store_or_fetch(val, true, contents[val - current[3] + 1])
+        end
+        contents = nothing
         global PointerStack[end] += 1
         continue
 
@@ -288,6 +340,8 @@ while true
         global PointerStack[end] += 1
         continue
     elseif current[1] ∈ stats
+        using StatsBase
+
         values = [store_or_fetch(val) for val ∈ current[2]:current[3]]
         values = convert(Vector{Real}, values)
         if current[1] == "Range"
@@ -299,10 +353,34 @@ while true
         global PointerStack[end] += 1
         continue
 
-    else
-        println(current)
+    # Plots
+    elseif current[1] ∈ xplots
+        println("Generating ", lowercase(current[1]), " plot...")
+        using PlotlyJS
+
+        values = [store_or_fetch(val) for val ∈ current[2]:current[3]]
+        values = convert(Vector{Real}, values)
+        filename = store_or_fetch(current[4])[2:end-1]
+
+        plot_generator(values, current[1], filename)
+        println("Plot created as ", filename, '.')
+        global PointerStack[end] += 1
+        continue
+    elseif current[1] ∈ xyplots
+        println("Generating ", lowercase(current[1]), " plot...")
+        using PlotlyJS
+
+        xvalues = [store_or_fetch(val) for val ∈ current[2]:current[3]]
+        xvalues = convert(Vector{Real}, xvalues)
+        global PointerStack[end] += 1
+        current = instructions[PointerStack[end]]
+        yvalues = [store_or_fetch(val) for val ∈ current[2]:current[3]]
+        yvalues = convert(Vector{Real}, yvalues)
+        filename = store_or_fetch(current[4])[2:end-1]
+
+        plot_generator(xvalues, yvalues, current[1], filename)
+        println("Plot created as ", filename, '.')
         global PointerStack[end] += 1
         continue
     end
-    break
 end
