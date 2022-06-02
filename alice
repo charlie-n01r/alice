@@ -9,7 +9,7 @@ if [ $# -eq 0 ]; then
 \033[38;2;153;9;136m #+#     #+# #+#            #+#    #+#    #+# #+#        \t
 \033[38;2;204;75;151m ###     ### ########## ########### ########  ########## \t
 
-\033[0;00m\033[38;2;250;231;164mAlice v1.0.1 (main, Jun 01 2022) on linux
+\033[0;00m\033[38;2;250;231;164mAlice v1.1.0 (main, Jun 01 2022) on linux
 MIT License Copyright (c) 2022 Carlos Eduardo Govea González\033[0;00m\
 "
 

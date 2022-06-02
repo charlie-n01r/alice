@@ -1007,7 +1007,7 @@ def p_end_dimensions(p):
     aux = S.Symbols.pop()
     pointer = temporary_handler(4)
     baseD = quad_address(dims.v_address)
-    quad_gen(('+', quad_address(aux), baseD, pointer))
+    quad_gen(('<+>', quad_address(aux), baseD, pointer))
     S.Operators.pop()
 
 def p_neuralgic_params(p):
@@ -1067,11 +1067,12 @@ def p_neuralgic_print(p):
     neuralgic_print :
     '''
     global quad_count
+    if p[-2] == None:
+        quad_gen(('LPrint', None, None, None))
+        return
     if not S.Symbols:
         print(f"Incorrect value provided to print function!")
         quit()
-    if p[-2] == None:
-        quad_gen(('LPrint', None, None, None))
     else:
         temp_quads = quadruple_list()
         IDList = list(get_IDs(p[-2]))

@@ -81,6 +81,10 @@ end
 function operations(data::Vector{Any}, operation::String)
     left = data[2] == nothing ? 0 : store_or_fetch(data[2])
     right = store_or_fetch(data[3])
+    if left === false || right === false
+        println("Semantic error! Variable was never assigned a value!")
+        exit()
+    end
     # Arithmetic
     operation == "+" && store_or_fetch(data[4], true, left + right)
     operation == "-" && store_or_fetch(data[4], true, left - right)
@@ -111,22 +115,23 @@ function operations(data::Vector{Any}, operation::String)
     operation == "and" && store_or_fetch(data[4], true, left && right)
     operation == "or"  && store_or_fetch(data[4], true, left || right)
     # Assignment
-    operation == "<-" && store_or_fetch(data[4], true, right)
+    if operation == "<-"
+        data[4] ∈ ranges[end] && operations([data[1], data[2], data[3], convert( Int64, store_or_fetch(data[4]) )], operation)
+        store_or_fetch(data[4], true, right)
+    end
+    # Array sum
+    operation == "<+>" && store_or_fetch(data[4], true, left + right)
 end
 
 function printquad(msg_address::Union{Int64, Nothing}, last::Bool, jump::Bool=true)
     if msg_address == nothing
         message = ""
     else
-        if msg_address ∈ ranges[end]
-            real_address = store_or_fetch(convert(Int64, msg_address))
-            message = store_or_fetch(convert(Int64, real_address))
-            if message === false
-                println("Value Error! One or more variables weren't assigned a value before printing.")
-                exit()
-            end
-        else
-            message = store_or_fetch(msg_address)
+        msg_address ∈ ranges[end] && return printquad(convert( Int64, store_or_fetch(msg_address) ), last, jump)
+        message = store_or_fetch(msg_address)
+        if message === false
+            println("Semantic error! Variable was never assigned a value!")
+            exit()
         end
     end
     if msg_address ∈ ranges[3] || msg_address ∈ ranges[6] || msg_address ∈ ranges[end-1]
@@ -197,19 +202,7 @@ while true
 
     # Basic operations
     elseif current[1] ∈ operators
-        old_curr = copy(current)
-        #println("Original:\n",old_curr)
-        for i ∈ 2:length(current)
-            current[i] ∈ ranges[end] || continue
-            if !(current[i] ∈ has_address)
-                push!(has_address, current[i])
-            else
-                real_address = store_or_fetch(convert(Int64, current[i]))
-                current[i] = convert(Int64, real_address)
-            end
-        end
         operations(current, current[1])
-        current = old_curr
         global PointerStack[end] += 1
         continue
 

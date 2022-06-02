@@ -2,9 +2,17 @@ begin DS:
   let x,y::int[20];
 
   main:
+    let i::int;
+
     mirror("tests/test.mrr", x);
     mirror("tests/test.mrr", y);
 
+    print("Values inside the array:");
+    for i <- 0:20:
+      print(x[i]);
+    end
+
+    print();
     print("Description of array x:");
     range(x);
     print("Size:", size(x));
@@ -17,6 +25,7 @@ begin DS:
     print("Sum of contents:", sum(x));
     print("Smallest value:", min(x));
     print("Largest value:", max(x));
+    print();
 
     print("---Graphing section---");
     histogram(x, "hist.png");

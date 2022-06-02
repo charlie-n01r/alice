@@ -69,7 +69,7 @@ ranges = [1000:2999,
           30000:30999,
           31000:31999]
 
-operators = ["++", "--", "^", "*", "/", "+", "-", "<", "<=", ">", ">=", "==", "¬=", "and", "or", "<-"]
+operators = ["++", "--", "^", "*", "/", "+", "-", "<", "<=", ">", ">=", "==", "¬=", "and", "or", "<-", "<+>"]
 stats = ["Size", "Mean", "Median", "Mode", "Variance", "Std", "Range", "Sum", "Min", "Max"]
 xplots = ["Histogram", "Violin", "Box"]
 xyplots = ["Bar", "Scatter"]
