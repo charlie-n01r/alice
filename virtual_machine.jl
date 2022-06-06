@@ -7,9 +7,12 @@ Global = GlobalMem(Persistent([], [], []), Persistent([], [], []))
 CurrMem = MemoryObj(Persistent([], [], []), Temporary([], [], [], []))
 MemoryStack = [CurrMem]
 PointerStack = [IP]
-has_address = []
-pointers = [has_address]
 
+#=
+    extract():
+        Extracts the values inside the obj.json file and returns the constants
+        table, function directory and quadruples as a tuple.
+=#
 function extract()
     try
         file = open("obj.json", "r")
@@ -21,6 +24,11 @@ function extract()
     end
 end
 
+#=
+    store_or_fetch(address, do_store, value):
+        Given an address, it looks for the relevant memory object in order to
+        perform a call to either fetch or store depending on the value of do_store.
+=#
 function store_or_fetch(address::Int64, do_store::Bool=false, value::Any=false)
     if address ∈ ranges[1]
         do_store && return store(Global.variables, value, convert(UInt16, address - ranges[1][1] + 1), '1')
@@ -78,7 +86,20 @@ function conversion(address::Int64, value::String)
     end
 end
 
+#=
+    operations(data, operation):
+        Given a quadruple and the operand, it performs the operation with the
+        values inside the quadruple and stores the result.
+=#
 function operations(data::Vector{Any}, operation::String)
+    if data[2] ∈ ranges[end]
+        data[2] = convert(Int64, store_or_fetch(data[2]))
+        operations(data, operation)
+    end
+    if data[3] ∈ ranges[end]
+        data[3] = convert(Int64, store_or_fetch(data[3]))
+        operations(data, operation)
+    end
     left = data[2] == nothing ? 0 : store_or_fetch(data[2])
     right = store_or_fetch(data[3])
     if left === false || right === false
@@ -116,13 +137,21 @@ function operations(data::Vector{Any}, operation::String)
     operation == "or"  && store_or_fetch(data[4], true, left || right)
     # Assignment
     if operation == "<-"
-        data[4] ∈ ranges[end] && operations([data[1], data[2], data[3], convert( Int64, store_or_fetch(data[4]) )], operation)
+        if data[4] ∈ ranges[end]
+            data[4] = convert(Int64, store_or_fetch(data[4]))
+            operations(data, operation)
+        end
         store_or_fetch(data[4], true, right)
     end
     # Array sum
     operation == "<+>" && store_or_fetch(data[4], true, left + right)
 end
 
+#=
+    printquad(msg_address, last, jump):
+        Given the address of a message, it fetches its value and prints it to the
+        terminal with either a newline or a space depending on the value last.
+=#
 function printquad(msg_address::Union{Int64, Nothing}, last::Bool, jump::Bool=true)
     if msg_address == nothing
         message = ""
@@ -142,6 +171,11 @@ function printquad(msg_address::Union{Int64, Nothing}, last::Bool, jump::Bool=tr
     jump && global PointerStack[end] += 1
 end
 
+#=
+    go_to_eval(data, type):
+        Evaluates the truth value of the data received and decides weather to
+        adjust the IP to the valua in data or skip to the next quadruple.
+=#
 function go_to_eval(data::Vector{Any}, type::Bool)
     result = store_or_fetch(data[2])
     if (result && type) || (!result && !type)
@@ -151,6 +185,11 @@ function go_to_eval(data::Vector{Any}, type::Bool)
     end
 end
 
+#=
+    statistics(data, operation, storage):
+        Given a string dictating the statistic function to perform, it will
+        store the value inside the address inside the storage address.
+=#
 function statistics(data::Vector{Real}, operation::String, storage::Int64)
     operation == "Size"       && store_or_fetch(storage, true, length(data))
     operation == "Mean"       && store_or_fetch(storage, true, mean(data))
@@ -163,6 +202,12 @@ function statistics(data::Vector{Real}, operation::String, storage::Int64)
     operation == "Max"        && store_or_fetch(storage, true, maximum(data))
 end
 
+#=
+    plot_generator(data, <data>, type, filename):
+        Given one or two arrays of data, it will generate a chart and export it
+        to the received filename. The type of chart to plot is specified by the
+        type attribute.
+=#
 function plot_generator(data::Vector{Real}, type::String, filename::String)
     color = ["rgb(153, 9, 136)", "rgb(131, 76, 167)"]
     if type == "Histogram"
@@ -214,10 +259,12 @@ while true
         printquad(current[4], true)
         continue
     elseif current[1] == "Input"
+        # Print the message of the input and read the value from the terminal
         printquad(current[3], false, false)
         address = current[4]
         expected = nothing
         input = readline()
+        # If the value doesn't match the storage address, raise an error
         try
             if address ∈ ranges[1] || address ∈ ranges[4] || address ∈ ranges[7] || address ∈ ranges[10]
                 expected = "int"
@@ -230,12 +277,14 @@ while true
             @printf("Error! Type mismatch on input, expected %s.\n", expected)
             exit()
         end
+        # Store the value
         store_or_fetch(address, true, input)
         global PointerStack[end] += 1
         continue
     elseif current[1] == "Mirror"
         filename = store_or_fetch(current[2])[2:end-1]
         contents = nothing
+        # Attempt to open the file or raise an error if not found
         try
             file = open(filename, "r")
             contents = split( read(file, String)[1:end-1], ';' )
@@ -245,6 +294,7 @@ while true
             exit()
         end
         try
+            # Try to save the values inside the given array or raise error
             if current[3] ∈ ranges[1] || current[3] ∈ ranges[4]
                 contents = map(s -> parse(Int64, s), contents)
             else
@@ -275,10 +325,12 @@ while true
 
     # Modules
     elseif current[1] == "ARE"
+        # Find the function in the function directory
         for fun ∈ modules
             fun[1] != current[2] && continue
             push!(Fun, fun)
         end
+        # Occupy the memory stablished in the resources in the current memory
         for address ∈ current[3]
             try
                 if store_or_fetch(address) !== false
@@ -295,10 +347,12 @@ while true
         global PointerStack[end] += 1
         continue
     elseif current[1] == "Parameter"
+        # Remember de paramameters given by the function
         push!(Fun, store_or_fetch(current[3]))
         global PointerStack[end] += 1
         continue
     elseif current[1] == "GoSub"
+        # Generate a new MemoryObj and IP and put them in their respective stacks
         params = Fun[1][2]
         global Fun = Fun[2:end]
         NewMem = MemoryObj(Persistent([], [], []), Temporary([], [], [], []))
@@ -311,11 +365,13 @@ while true
         push!(PointerStack, current[4] + 1)
         continue
     elseif current[1] == "Return"
+        # Update the global value of the function and return to the previous memory
         operations(current, "<-")
         pop!(MemoryStack)
         pop!(PointerStack)
         continue
     elseif current[1] == "EndModule"
+        # Return to the previous memory
         pop!(MemoryStack)
         pop!(PointerStack)
         global PointerStack[end] += 1
@@ -323,6 +379,7 @@ while true
 
     # Arrays
     elseif current[1] == "Verify"
+        # Evaluate if the index is within the boundaries of the array size
         val = store_or_fetch(current[2])
         inf = store_or_fetch(current[3])
         sup = store_or_fetch(current[4])
@@ -337,6 +394,7 @@ while true
 
         values = [store_or_fetch(val) for val ∈ current[2]:current[3]]
         values = convert(Vector{Real}, values)
+        # If the statistical function is Range, print the values to the terminal
         if current[1] == "Range"
             (current[2] ∈ ranges[1] || current[2] ∈ ranges[4]) && @printf("Range: %d - %d\n", minimum(values), maximum(values))
             (current[2] ∈ ranges[2] || current[2] ∈ ranges[5]) && @printf("Range: %f - %f\n", minimum(values), maximum(values))
@@ -351,6 +409,7 @@ while true
         println("Generating ", lowercase(current[1]), " plot...")
         using PlotlyJS
 
+        # Get the values for the array to be plotted
         values = [store_or_fetch(val) for val ∈ current[2]:current[3]]
         values = convert(Vector{Real}, values)
         filename = store_or_fetch(current[4])[2:end-1]
@@ -363,10 +422,13 @@ while true
         println("Generating ", lowercase(current[1]), " plot...")
         using PlotlyJS
 
+        # Get the x values for the array to be plotted
         xvalues = [store_or_fetch(val) for val ∈ current[2]:current[3]]
         xvalues = convert(Vector{Real}, xvalues)
         global PointerStack[end] += 1
         current = instructions[PointerStack[end]]
+
+        # Get the y values for the array to be plotted after updating the IP
         yvalues = [store_or_fetch(val) for val ∈ current[2]:current[3]]
         yvalues = convert(Vector{Real}, yvalues)
         filename = store_or_fetch(current[4])[2:end-1]

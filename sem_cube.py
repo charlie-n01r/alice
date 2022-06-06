@@ -25,6 +25,11 @@ Cube = {
     '<-'  : [[0, False, False, False, 4],         [False, 1, False, False, 4],         [False, False, 2, False, 4],         [False, False, False, False, False], [0, 1, 2, False, 4]]
 }
 
+'''
+    get_result(coordinates):
+        Given a tuple of 3 values, it uses them as keys to find a result in the
+        semantic cube.
+'''
 def get_result(coordinates):
     if len(coordinates) == 2:
         opr, op = coordinates

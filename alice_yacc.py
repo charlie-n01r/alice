@@ -23,6 +23,12 @@ memory = memory()
 env = 'global'
 
 #--------------------------Auxiliary Functions----------------------------------
+'''
+    find(ID, list):
+        Receives an ID and the list where it will look for the ID.
+        If it finds it, the function will return the entire var/cte object,
+        otherwise it will return False.
+'''
 def find(ID, list_name):
     if list_name == 'dec':
         if not variables.var_list:
@@ -57,12 +63,22 @@ def find(ID, list_name):
                 return var
         return False
 
+'''
+    quad_gen(quad):
+        Receives a tuple containing the values of a new quadruple to add to the
+        list, generates a new quadruple object, adds it, and updates the counter.
+'''
 def quad_gen(quad):
     global quad_count
     new_quad = quadruple(*quad)
     quadruples.append(new_quad)
     quad_count += 1
 
+'''
+    quad_address(temp):
+        Returns the address of a provided ID, if temp was fed into the fucntion,
+        otherwise it pops a value from the symbols stack and returns its address.
+'''
 def quad_address(temp=None):
     if temp == None:
         temp = S.Symbols.pop()
@@ -74,6 +90,12 @@ def quad_address(temp=None):
         quit()
     return token.v_address
 
+'''
+    temporary_handler(type, append, name):
+        Creates a new temporary variable of a given type. If append is true, it
+        will add the value to the symbol and type stacks, if name is not false,
+        the new variable will receive the name of the value given.
+'''
 def temporary_handler(type, append=True, name=False):
     if type == 0:
         address = memory.tmpi[0] + memory.tmpi[1]
@@ -121,6 +143,14 @@ def temporary_handler(type, append=True, name=False):
     variables.append(new_var)
     return address
 
+'''
+    constant_handler(p, cte, append):
+        Given a list containing a group of values, it will attempt to find the
+        value of the top of the list in the constants table. If it finds it, it
+        will return the constant object of the ID, otherwise it will create a
+        new object for the ID. If append is true, it will add the value to the
+        symbol and type stacks.
+'''
 def constant_handler(p, cte, append=True):
     if append:
         S.Symbols.append(p[-1])
@@ -150,7 +180,14 @@ def constant_handler(p, cte, append=True):
         new_cte = cte_object(p[-1], address)
         constants.append(new_cte)
 
-def expression_handler(p, operator):
+'''
+    expression_handler(operator):
+        Given an operator for an expression, it first evaluates the top of the
+        operators stack in order to check if it corresponds with the operator
+        found. It evaluates the semantics of the operation and creates a new
+        quadruple for the received operation.
+'''
+def expression_handler(operator):
     length = len(S.Operators)
     try:
         size = length - 1 - S.Operators.index('(')
@@ -177,6 +214,12 @@ def expression_handler(p, operator):
         tn = temporary_handler(res)
         quad_gen((operator, izq_address, der_address, tn))
 
+'''
+    unary_handler(p, operator):
+        Given an array of symbols and an operator, the function will evaluate
+        the semantics of the operation and generate one of 3 possible quadruples
+        for either ++, --, or unary -.
+'''
 def unary_handler(p, operator):
     length = len(S.Operators)
     try:
@@ -209,6 +252,11 @@ def unary_handler(p, operator):
             S.Types.append(type_der)
             quad_gen((operator, None, der_address, der_address))
 
+'''
+    dimension_tracker(dim):
+        Generates the semantic verification for array indexation, as well as the
+        S1*m1 multiplication and S1*m1+S2 sum in case of a matrix.
+'''
 def dimension_tracker(dim):
     val = quad_address(S.Symbols[-1])
     curr = dims.arr_size if type(dims.arr_size[1]) != list else dims.arr_size[0]
@@ -227,6 +275,12 @@ def dimension_tracker(dim):
         temp = temporary_handler(0)
         quad_gen(('+', aux1[0], aux2[0], temp))
 
+'''
+    call_solver(ARE, IDList, aux, modify):
+        Given an empty ARE quadruple, it will fill it up with the resources
+        necessary to call the function, as well as generate the pertinent
+        Parameter quadruples and the GoSub quadruple.
+'''
 def call_solver(ARE, IDList, aux, modify=False):
     addresses = [[], []]
     ARE[2] = addresses[0]
@@ -296,6 +350,11 @@ def call_solver(ARE, IDList, aux, modify=False):
     else:
         return ARE
 
+'''
+    get_IDs(IDList):
+        Given a list with multiple levels of nested lists, it flattens the list
+        and returns a single list with all the values.
+'''
 def get_IDs(IDList):
      for item in IDList:
          if isinstance(item, Iterable) and not isinstance(item, str):
@@ -304,6 +363,10 @@ def get_IDs(IDList):
          else:
              yield item
 
+'''
+    end_yacc():
+        Exports the quadruples, constants and the function directory to JSON format.
+'''
 def end_yacc():
     export(quadruples, constants, funDir)
 
@@ -703,12 +766,14 @@ def p_lclenv_setup(p):
     lclenv_setup :
     '''
     if p[-3] == 'begin':
+        # On beginning of program, add program to function directory
         program = mdl_object(p[-1], 'void', quad_count, variables, None, None)
         funDir.append(program)
     else:
         global env
         env = p[-1]
         if env != 'main':
+            # If the environment is a typed function, evaluate if the module already exists
             if env in ['int', 'float', 'string']:
                 type = None
                 address = None
@@ -955,7 +1020,7 @@ def p_neuralgic_var(p):
     '''
     var = find(p[-1], 'var')
     if not var:
-        print(f"Error! Variable '{p[-1]}' doesn't exist!")
+        print(f"Error! Variable '{p[-1]}' wasn't declared!")
         quit()
     S.Symbols.append(p[-1])
     S.Types.append(var.type)
@@ -1051,7 +1116,7 @@ def p_neuralgic_expr(p):
     '''
     neuralgic_expr :
     '''
-    expression_handler(p, p[-3])
+    expression_handler(p[-3])
 
 def p_neuralgic_unary(p):
     '''
@@ -1157,7 +1222,14 @@ def p_neuralgic_call(p):
             print(f"Error! No arguments received! Expected {len(fun.prototyping)}.")
             quit()
 
-    IDList = [ID for ID in list((get_IDs(p[-1]))) if ID != None]
+    to_remove = []
+    IDList = list((get_IDs(p[-1])))
+    for i in range(len(IDList)):
+        if IDList[i] == None:
+            to_remove.append(IDList[i])
+        if IDList[i] in ['size', 'mean', 'median', 'mode', 'variance', 'std', 'range', 'sum', 'min', 'max']:
+            to_remove.append(IDList[i+1])
+    IDList = [ID for ID in IDList if ID not in to_remove]
     if len(IDList) != None and fun.prototyping == None:
         print(f"Error! Call to '{fun.ID}' received too many arguments! Expected no arguments, received {len(IDList)}.")
         quit()
@@ -1263,7 +1335,7 @@ def p_for_id(p):
     '''
     var = find(p[-1], 'var')
     if not var:
-        print(f"Error! Variable '{p[-1]}' not found!")
+        print(f"Error! Variable '{p[-1]}' wasn't declared!")
         quit()
     if var.type[0] > 0:
         print(f"Semantic error! Type mismatch: Expected int, got {var.type[1]}.")
@@ -1339,10 +1411,11 @@ def p_neuralgic_stats(p):
     '''
     qtype = 0 if p[-1][0] == 'size' else -1 if p[-1][0] == 'range' else 1
     res = find(p[-1][1], 'var')
-    qtype = 0 if res.type[0] == 0 and p[-1][0] in ['mode', 'sum', 'min', 'max'] else 1
+    if res.type[0] == 0 and p[-1][0] in ['mode', 'sum', 'min', 'max']:
+        qtype = 0
     address = temporary_handler(qtype) if qtype >= 0 else None
     if not res:
-        print(f"Error! Variable '{p[-1][1]}' does not exist!")
+        print(f"Error! Variable '{p[-1][1]}' wasn't declared!")
         quit()
     if res.arr_size[0][1] == 0 or type(res.arr_size[1]) == list:
         print(f"Error! Variable '{p[-1][1]}' is not an unidimensional array!")

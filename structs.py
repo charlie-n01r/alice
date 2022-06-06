@@ -1,5 +1,10 @@
 import json
 
+'''
+    export(Q, C, D):
+        Given the quadruple list, the constants list and the function directory,
+        it turns them into a JSON serializable list and exports them as obj.json.
+'''
 def export(Q, C, D):
     export_dict = {}
 
@@ -24,6 +29,9 @@ def export(Q, C, D):
     with open('obj.json', 'w', encoding='utf-8') as file:
         json.dump(export_dict, file, ensure_ascii=False, indent=2)
 
+'''
+    var_object: Class that represents a row in the variable table.
+'''
 class var_object:
     def __init__(self, ID, type, v_address, arr_size):
         self.ID = ID
@@ -34,6 +42,9 @@ class var_object:
     def __repr__(self):
         return f'({self.ID}, {self.type[1]}, {self.v_address}, {self.arr_size})'
 
+'''
+    var_table: Class that represents the variable table.
+'''
 class var_table:
     def __init__(self):
         self.var_list = []
@@ -47,6 +58,9 @@ class var_table:
     def __repr__(self):
         return f'{self.var_list}'
 
+'''
+    cte_object: Class that represents a row in the constants table.
+'''
 class cte_object:
     def __init__(self, ID, v_address):
         self.ID = ID
@@ -55,6 +69,9 @@ class cte_object:
     def __repr__(self):
         return f'({self.ID}, {self.v_address})'
 
+'''
+    cte_table: Class that represents the constants table.
+'''
 class cte_table:
     def __init__(self):
         self.cte_list = []
@@ -62,6 +79,9 @@ class cte_table:
     def append(self, value):
         self.cte_list.append(value)
 
+'''
+    mdl_object: Class that represents a row in the function directory.
+'''
 class mdl_object:
     def __init__(self, ID, type, beginning, table, values, size):
         self.ID = ID
@@ -74,6 +94,9 @@ class mdl_object:
     def __repr__(self):
         return f'({self.ID}, {self.type}, {self.beginning}, {self.variables}, {self.prototyping}, {self.size})'
 
+'''
+    mdl_object: Class that represents the function directory.
+'''
 class mdl_dir:
     def __init__(self):
         self.modules = []
@@ -81,6 +104,9 @@ class mdl_dir:
     def append(self, module):
         self.modules.append(module)
 
+'''
+    quadruple: Class that represents a quadruple in the quadruple list.
+'''
 class quadruple:
     def __init__(self, operation, operand1, operand2, storage):
         self.operation = operation
@@ -91,6 +117,9 @@ class quadruple:
     def __repr__(self):
         return f'({self.operation}, {self.operand1}, {self.operand2}, {self.storage})'
 
+'''
+    quadruple_list: Class that represents the quadruple list.
+'''
 class quadruple_list:
     def __init__(self):
         self.quadruples = []
@@ -98,6 +127,9 @@ class quadruple_list:
     def append(self, quadruple):
         self.quadruples.append(quadruple)
 
+'''
+    stacks: Class that contains all the relevant stacks used in the compilation phase.
+'''
 class stacks:
     def __init__(self):
         self.Operators = []
@@ -106,6 +138,9 @@ class stacks:
         self.Jumps = []
         self.Dimensions = []
 
+'''
+    memory: Class that contains all base addresses and the counters for each range.
+'''
 class memory:
     def __init__(self):
         self.gbli = [1000, 0]
