@@ -11,6 +11,7 @@ Cube = {
     '^'   : [[0, 1, False, False, 4],             [1, 1, False, False, 4],             [False, False, False, False, 4],     [False, False, False, False, 4],     [4, 4, 4, False, 4]],
     '*'   : [[0, 1, False, False, 4],             [1, 1, False, False, 4],             [False, False, False, False, 4],     [False, False, False, False, 4],     [4, 4, 4, False, 4]],
     '/'   : [[1, 1, False, False, 4],             [1, 1, False, False, 4],             [False, False, False, False, 4],     [False, False, False, False, 4],     [4, 4, 4, False, 4]],
+    '//'  : [[0, 0, False, False, 4],             [0, 0, False, False, 4],             [False, False, False, False, 4],     [False, False, False, False, 4],     [4, 4, 4, False, 4]],
     '*'   : [[0, 1, False, False, 4],             [1, 1, False, False, 4],             [False, False, False, False, 4],     [False, False, False, False, 4],     [4, 4, 4, False, 4]],
     '+'   : [[0, 1, False, False, 4],             [1, 1, False, False, 4],             [False, False, False, False, 4],     [False, False, False, False, 4],     [4, 4, 4, False, 4]],
     '-'   : [[0, 1, False, False, 4],             [1, 1, False, False, 4],             [False, False, False, False, 4],     [False, False, False, False, 4],     [4, 4, 4, False, 4]],

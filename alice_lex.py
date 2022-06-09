@@ -52,6 +52,7 @@ tokens = [
     'MINUS',
     'MULTIPLY',
     'DIVIDE',
+    'INT_DIV',
     'LT',
     'LE',
     'GT',
@@ -75,6 +76,7 @@ t_DECREASE      = r'--'
 t_PLUS          = r'\+'
 t_MINUS         = r'-'
 t_MULTIPLY      = r'\*'
+t_INT_DIV       = r'//'
 t_DIVIDE        = r'/'
 t_ASSIGN         = r'\<-'
 t_LE            = r'\<='

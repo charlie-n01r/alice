@@ -605,6 +605,7 @@ def p_mulop(p):
     mulop : EXPONENT
           | MULTIPLY
           | DIVIDE
+          | INT_DIV
     '''
     p[0] = p[1]
 

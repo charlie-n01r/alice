@@ -93,12 +93,12 @@ end
 =#
 function operations(data::Vector{Any}, operation::String)
     if data[2] ∈ ranges[end]
-        data[2] = convert(Int64, store_or_fetch(data[2]))
-        operations(data, operation)
+        new_add = convert(Int64, store_or_fetch(data[2]))
+        return operations([data[1], new_add, data[3], data[4]], operation)
     end
     if data[3] ∈ ranges[end]
-        data[3] = convert(Int64, store_or_fetch(data[3]))
-        operations(data, operation)
+        new_add = convert(Int64, store_or_fetch(data[3]))
+        return operations([data[1], data[2], new_add, data[4]], operation)
     end
     left = data[2] == nothing ? 0 : store_or_fetch(data[2])
     right = store_or_fetch(data[3])
@@ -123,6 +123,16 @@ function operations(data::Vector{Any}, operation::String)
             exit()
         end
         result = store_or_fetch(data[4], true, result)
+        return
+    end
+    if operation == "//"
+        result = trunc(Int64, left) ÷ trunc(Int64, right)
+        if result == Inf
+            println("Error! Division by zero is undefined!")
+            exit()
+        end
+        result = store_or_fetch(data[4], true, result)
+        return
     end
     operation == "++" && store_or_fetch(data[4], true, right + 1)
     operation == "--" && store_or_fetch(data[4], true, right - 1)
@@ -138,10 +148,10 @@ function operations(data::Vector{Any}, operation::String)
     # Assignment
     if operation == "<-"
         if data[4] ∈ ranges[end]
-            data[4] = convert(Int64, store_or_fetch(data[4]))
-            operations(data, operation)
+            new_add = convert(Int64, store_or_fetch(data[4]))
+            return operations([data[1], data[2], data[3], new_add], operation)
         end
-        store_or_fetch(data[4], true, right)
+        return store_or_fetch(data[4], true, right)
     end
     # Array sum
     operation == "<+>" && store_or_fetch(data[4], true, left + right)
@@ -241,7 +251,7 @@ constants = nothing
 
 while true
     current = instructions[PointerStack[end]]
-    #println(current)
+    #println(current, '\n', Global, '\n', CurrMem)
     # End runtime
     if current[1] == "EndProgram" break
 

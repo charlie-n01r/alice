@@ -1,18 +1,22 @@
-begin findtest:
+begin find:
   let arr::int[20];
 
+  module find::int(num::int):
+    let y::int;
+    for y <- 0:size(arr):
+      if num == arr[y] then:
+        return y;
+      end
+    end
+    return -1;
+  end
+
   main:
-    let res, y, num::int;
-    res <- -1;
+    let res, num::int;
     mirror("tests/test.mrr", arr);
     input("Insert the number you're looking for:", num);
 
-    for y <- 0:size(arr):
-      if num == arr[y] then:
-        res <- y;
-      end
-    end
-
+    res <- find(num);
     if res == -1 then:
       print("The number was not found in the array!");
     else:

@@ -1,0 +1,43 @@
+begin sort:
+  let arr::int[20];
+
+  module partition::int(low::int, high::int):
+    let pivot, i, j, aux::int;
+    pivot <- arr[high];
+    i <- low - 1;
+
+    for j <- low:high:
+      if arr[j] <= pivot then:
+        i++;
+        aux <- arr[i];
+        arr[i] <- arr[j];
+        arr[j] <- aux;
+      end
+    end
+
+    aux <- arr[i + 1];
+    arr[i + 1] <- arr[high];
+    arr[high] <- arr[i + 1];
+    return i + 1;
+  end
+
+  module quicksort::int(low::int, high::int):
+    let pivot::int;
+    if low < high then:
+      pivot <- partition(low, high);
+      quicksort(low, pivot - 1);
+      quicksort(pivot + 1, high);
+    end
+  end
+
+  main:
+    let y::int;
+    mirror("tests/test.mrr", arr);
+
+    quicksort(0, size(arr) - 1);
+    print("Ordered array:");
+    for y <- 0:size(arr):
+      print(arr[y]);
+    end
+  end
+endprog
