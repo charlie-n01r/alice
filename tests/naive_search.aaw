@@ -1,4 +1,4 @@
-begin find:
+begin search:
   let arr::int[20];
 
   module find::int(num::int):
